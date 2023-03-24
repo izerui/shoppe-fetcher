@@ -22,19 +22,21 @@
 
     </style>
     <script src="./ext/jquery.min.js"></script>
-    <script type="module" src="./popup.js"></script>
-    <script type="module" src="./background.js"></script>
+    <script src="./popup.js"></script>
+    <script src="./background.js"></script>
 </head>
 
 <body>
 <h1>虾皮广告收集器</h1>
+<label id="domainText">每隔10分钟会自动收集昨日数据</label>
 <div>
     <button id="btn_0">收集昨日综合数据</button>
     <button id="btn_1">收集昨日关键字数据</button>
     <button id="clear">清除控制台</button>
+    <input id="show0" type="radio" name="showMsg" value="1">显示提示信息</input>
+    <input id="show1" type="radio" name="showMsg" value="0">隐藏提示信息</input>
 </div>
 <div style="display:flex; flex-direction: column">
-    <label id="domainText"></label>
     <textarea id="myText" class="myText" disabled></textarea>
 </div>
 </body>

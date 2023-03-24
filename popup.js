@@ -1,7 +1,3 @@
-import * as common from "./common.js";
-import Events from "./events.js";
-import {yesterday} from "./common.js";
-
 $(document).ready(function () {
 
     // 监听文件导出事件回调,在页面显示
@@ -75,16 +71,34 @@ $(document).ready(function () {
 
     // 收集昨日综合数据
     $('#btn_0').click((event) => {
-        common.fetchFile(0, true)
+        fetchFile(0, true)
     })
 
     // 收集昨日关键字数据
     $('#btn_1').click((event) => {
-        common.fetchFile(1, true)
+        fetchFile(1, true)
     })
 
     $('#clear').click((event) => {
         $('#myText').text('')
+    })
+
+    // 监听radio事件
+    $("input:radio[name='showMsg']").change(function () {
+        let _show = Number($(this).val())
+        chrome.storage.sync.set({'showMsg': _show}, function () {
+        })
+    })
+
+    // 默认初始化选中
+    chrome.storage.sync.get('showMsg', function (result) {
+        if (result.showMsg && Number(result.showMsg) == 1) {
+            $('#show0').attr('checked', true);
+            $('#show1').attr('checked', false);
+        } else {
+            $('#show0').attr('checked', false);
+            $('#show1').attr('checked', true);
+        }
     })
 
 
