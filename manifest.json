@@ -1,0 +1,49 @@
+{
+  "name": "虾皮广告收集器",
+  "description": "收集虾皮广告,并上传到es服务",
+  "version": "1.0",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "contextMenus",
+    "tabs",
+    "storage",
+    "webNavigation",
+    "notifications",
+    "activeTab",
+    "cookies",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://*.shopee.com.my/*"
+  ],
+  "icons": {
+    "16": "./img/icon-16.png",
+    "48": "./img/icon-48.png",
+    "128": "./img/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.shopee.com.my/*"
+      ],
+      "js": [
+        "ext/jquery.min.js",
+        "ext/jquery.toast.min.js",
+        "content.js"
+      ],
+      "css": [
+        "./ext/jquery.toast.min.css"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_icon": "./img/icon-16.png",
+    "default_title": "虾皮广告收集器",
+    "default_popup": "popup.html"
+  },
+  "manifest_version": 3
+}
+

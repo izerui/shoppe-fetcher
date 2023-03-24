@@ -1,0 +1,353 @@
+{
+  "message": "success",
+  "code": 0,
+  "data": {
+    "total_count": 22,
+    "campaign_ads_list": [
+      {
+        "report": {
+          "impression": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_roi": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_order": {
+            "ratio": 0,
+            "value": 0
+          },
+          "shop_item_impression": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_gmv": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cost": {
+            "ratio": 0,
+            "value": 0
+          },
+          "shop_ctr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "click": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_cir": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_order_amount": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_cir": {
+            "ratio": 0,
+            "value": 0
+          },
+          "gmv_expense_ratio": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cpdc": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cpc": {
+            "ratio": 0,
+            "value": 0
+          },
+          "ctr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_gmv": {
+            "ratio": 0,
+            "value": 0
+          },
+          "order_amount": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_cr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cir": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_roi": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_order_amount": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_order": {
+            "ratio": 0,
+            "value": 0
+          },
+          "shop_item_click": {
+            "ratio": 0,
+            "value": 0
+          },
+          "order": {
+            "ratio": 0,
+            "value": 0
+          },
+          "order_gmv": {
+            "ratio": 0,
+            "value": 0
+          }
+        },
+        "product": {
+          "itemid": 21050675743,
+          "name": "KUCA kerusi gaming gaming chair ergonomic chair office chair adjustable chair kerusi permainan",
+          "is_adult": false,
+          "state": "normal",
+          "is_unlisted": false,
+          "is_blocked_for_promotion": false,
+          "images": "sg-11134201-23010-5af8hko0wulvbd,sg-11134201-22100-g0fpswjvdkiv92,sg-11134201-22090-a34zhlxh22hv77,b1559a70e94159ff3fa32a206b6c5229,6cfcb0674c8ac4e2439ae8e2481f5d91,edec601a23acbf4c7ece0685790ef68e,sg-11134201-22090-1csgr4ci22hvfb,274b6d00a477b196f72b5ba6417c7ec3,6bebfdb12f7126020eb8c5deabcf6633",
+          "stock": 6
+        },
+        "advertisements": [
+          {
+            "itemid": 21050675743,
+            "status": 3,
+            "placement": 8,
+            "ctime": 1666257995,
+            "campaignid": 34872675,
+            "adsid": 55354898,
+            "mtime": 1678351616,
+            "extinfo": {
+              "target": {},
+              "pricing_type": 4,
+              "display_home_banner": {},
+              "shop_customisation": {},
+              "keywords": [],
+              "boost": {}
+            }
+          },
+          {
+            "itemid": 21050675743,
+            "status": 3,
+            "placement": 2,
+            "ctime": 1673415083,
+            "campaignid": 34872675,
+            "adsid": 59065270,
+            "mtime": 1678351616,
+            "extinfo": {
+              "target": {
+                "price": 0.07,
+                "premium_rate": 0,
+                "base_price": 0.07
+              },
+              "pricing_type": 1,
+              "display_home_banner": {},
+              "shop_customisation": {},
+              "keywords": [],
+              "boost": {}
+            }
+          },
+          {
+            "itemid": 21050675743,
+            "status": 3,
+            "placement": 5,
+            "ctime": 1673415083,
+            "campaignid": 34872675,
+            "adsid": 59065271,
+            "mtime": 1678351616,
+            "extinfo": {
+              "target": {
+                "price": 0.07,
+                "premium_rate": 0,
+                "base_price": 0.07
+              },
+              "pricing_type": 1,
+              "display_home_banner": {},
+              "shop_customisation": {},
+              "keywords": [],
+              "boost": {}
+            }
+          }
+        ],
+        "campaign": {
+          "status": 1,
+          "name": "",
+          "campaignid": 34872675,
+          "total_quota": "0.00",
+          "start_time": 1666257995,
+          "daily_expense": "0.00",
+          "daily_quota": "5.00",
+          "state": "ended",
+          "end_time": 1678351615,
+          "mtime": 1678351615,
+          "total_expense": "502.48",
+          "type": "targeting"
+        }
+      },
+      {
+        "report": {
+          "impression": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_roi": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_order": {
+            "ratio": 0,
+            "value": 0
+          },
+          "shop_item_impression": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_gmv": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cost": {
+            "ratio": 0,
+            "value": 0
+          },
+          "shop_ctr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "click": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_cir": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_order_amount": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_cir": {
+            "ratio": 0,
+            "value": 0
+          },
+          "gmv_expense_ratio": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cpdc": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cpc": {
+            "ratio": 0,
+            "value": 0
+          },
+          "ctr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_gmv": {
+            "ratio": 0,
+            "value": 0
+          },
+          "order_amount": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_cr": {
+            "ratio": 0,
+            "value": 0
+          },
+          "cir": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_roi": {
+            "ratio": 0,
+            "value": 0
+          },
+          "broad_order_amount": {
+            "ratio": 0,
+            "value": 0
+          },
+          "direct_order": {
+            "ratio": 0,
+            "value": 0
+          },
+          "shop_item_click": {
+            "ratio": 0,
+            "value": 0
+          },
+          "order": {
+            "ratio": 0,
+            "value": 0
+          },
+          "order_gmv": {
+            "ratio": 0,
+            "value": 0
+          }
+        },
+        "product": {
+          "itemid": 21954044209,
+          "name": "Scalable KUCA TV cabinet Adjustable telescopic Modern Minimalist TV Cabinet kabinet TV rak tv kayu Rak TV",
+          "is_adult": false,
+          "state": "soldout",
+          "is_unlisted": false,
+          "is_blocked_for_promotion": false,
+          "images": "sg-11134201-23010-i4ujfuqbxulv95,sg-11134201-22110-cqq0mpsc3ljvf4,sg-11134201-22100-u7hyy768fkiv5f,sg-11134201-22100-h6o6fjy8fkiva3,2f349ea90018d8e93e5887489bd165ab,sg-11134201-22100-gdbw20x9fkivd5,sg-11134201-22100-ab5iijlbgkiv3f,sg-11134201-22100-15hjc4o0fkiv62,sg-11134201-22100-tiz4z130fkivb2",
+          "stock": 0
+        },
+        "advertisements": [
+          {
+            "itemid": 21954044209,
+            "status": 3,
+            "placement": 8,
+            "ctime": 1666257995,
+            "campaignid": 34872674,
+            "adsid": 55354899,
+            "mtime": 1677061630,
+            "extinfo": {
+              "target": {},
+              "pricing_type": 4,
+              "display_home_banner": {},
+              "shop_customisation": {},
+              "keywords": [],
+              "boost": {}
+            }
+          }
+        ],
+        "campaign": {
+          "status": 1,
+          "name": "",
+          "campaignid": 34872674,
+          "total_quota": "0.00",
+          "start_time": 1666257995,
+          "daily_expense": "0.00",
+          "daily_quota": "1.50",
+          "state": "ended",
+          "end_time": 1677061629,
+          "mtime": 1677061629,
+          "total_expense": "163.81",
+          "type": "targeting"
+        }
+      }
+    ]
+  }
+}

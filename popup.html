@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>虾皮广告收集器</title>
+    <style type="text/css">
+        body {
+            margin: 10px;
+            white-space: nowrap;
+        }
+
+        h1 {
+            font-size: 15px;
+        }
+
+        .myText {
+            width: 600px;
+            height: 300px;
+            background-color: dimgray;
+            color: cornsilk;
+        }
+
+    </style>
+    <script src="./ext/jquery.min.js"></script>
+    <script type="module" src="./popup.js"></script>
+    <script type="module" src="./background.js"></script>
+</head>
+
+<body>
+<h1>虾皮广告收集器</h1>
+<div>
+    <button id="btn_0">收集昨日综合数据</button>
+    <button id="btn_1">收集昨日关键字数据</button>
+    <button id="clear">清除控制台</button>
+</div>
+<div style="display:flex; flex-direction: column">
+    <label id="domainText"></label>
+    <textarea id="myText" class="myText" disabled></textarea>
+</div>
+</body>
+</html>
