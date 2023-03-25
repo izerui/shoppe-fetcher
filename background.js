@@ -168,44 +168,21 @@ function startOfDay(date) {
 
 // 请求导出数据文件
 function _exportFile(type, force, callback) {
-    let index_name = getIndexName(type)
-    chrome.storage.local.get([index_name], function (result) {
-        // 昨日数据已经上传过,并且没有指定强制上传则退出
-        if (result[index_name] && result[index_name] == 'uploaded' && !force) {
-            Events.dispatch(Events.UPLOAD_COMPLETE, type, 'exist')
-        } else {
-            getCookie((cookies) => {
-                const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
-                fetch(url)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('fetch /api/marketing/v3/pas/report_file/export: ', data)
-                        if (data.code == 0) {
-                            let arrayKey = `array${type}`
-                            let res = {"fileid": data.data.fileid, "filename": data.data.file_name}
-                            chrome.storage.local.get([arrayKey], function (result) {
-                                if (!result.array0) {
-                                    result.array0 = []
-                                }
-                                if (result.array0.length > 10) {
-                                    result.array0 = result.array0.reverse().slice(0, 8)
-                                }
-                                result.array0.push(res)
-                                // 保存最新的10条下载记录
-                                chrome.storage.local.set({arrayKey: result.array0}, function () {
-                                })
-                                callback(res)
-                                Events.dispatch(Events.EXPORT_FILE, type, res)
-                            });
-                        } else {
-                            Events.dispatch(Events.EXPORT_FILE_ERROR, type, data.message)
-                        }
-                    }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
-            })
-        }
+    getCookie((cookies) => {
+        const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('fetch /api/marketing/v3/pas/report_file/export: ', data)
+                if (data.code == 0) {
+                    let res = {"fileid": data.data.fileid, "filename": data.data.file_name}
+                    callback(res)
+                    Events.dispatch(Events.EXPORT_FILE, type, res)
+                } else {
+                    Events.dispatch(Events.EXPORT_FILE_ERROR, type, data.message)
+                }
+            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
     })
-
-
 }
 
 // 检查文件是否已生成
@@ -437,23 +414,6 @@ function getIndexName(type) {
     return index_name
 }
 
-function resetUploadedStatus() {
-    [0, 1].forEach(type => {
-        let index_name = getIndexName(type)
-        chrome.storage.local.remove(index_name, function () {
-            let message = `${index_name}: 已经标记删除,可以再次上传`
-            console.log('resetUploadedStatus: ', message)
-            this.sendToFront('success', message)
-        })
-    })
-}
-
-
-// 监听获取cookie回调
-Events.listener(Events.GET_COOKIES, ([action, type, cookies]) => {
-    chrome.storage.local.set({'cookies': cookies}, function () {
-    })
-})
 
 // 监听文件导出事件回调
 Events.listener(Events.EXPORT_FILE, ([type, file_res]) => {
@@ -493,20 +453,12 @@ Events.listener(Events.OFFSET_MARKETING_DATA, ([offset, limit, datas]) => {
 Events.listener(Events.UPLOAD_COMPLETE, ([type, status]) => {
     let index_name = getIndexName(type)
     let typename = getTypename(type)
-    chrome.storage.local.set({index_name: 'uploaded'}, function () {
-        let message = `${typename} ${getIndexName(type)}: 已成功上传服务器`
-        if (status == 'exist') {
-            message = `昨日${typename}数据已上传过: ${getIndexName(type)}`
-        }
-        console.log('upload_complete: ', message)
-        this.sendToFront('completed', message, type)
-
-        chrome.storage.local.get([index_name], function (result) {
-            debugger
-            console.log('result_index_name: ', result[index_name])
-        })
-    })
-
+    let message = `${typename} ${getIndexName(type)}: 已成功上传服务器`
+    if (status == 'exist') {
+        message = `昨日${typename}数据已上传过: ${getIndexName(type)}`
+    }
+    console.log('upload_complete: ', message)
+    this.sendToFront('completed', message, type)
 })
 
 // 请求失败回调
@@ -548,10 +500,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
-  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-    console.log(
-      `Storage key "${key}" in namespace "${namespace}" changed.`,
-      `Old value was "${oldValue}", new value is "${newValue}".`
-    );
-  }
+    for (let [key, {oldValue, newValue}] of Object.entries(changes)) {
+        console.log(
+            `Storage key "${key}" in namespace "${namespace}" changed.`,
+            `Old value was "${oldValue}", new value is "${newValue}".`
+        );
+    }
 })
