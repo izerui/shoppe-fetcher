@@ -46,11 +46,11 @@ const Events = {
      */
     MARKETING_DATA_ERROR: 'marketingDataError',
     /**
-     * args: [titleArray, headerArray, newDataArray, infoDataArray]
+     * args: [titleArray, headerArray, newDataArray]
      */
     GENERATE_DATA_ARRAY: 'generateDataArray',
     /**
-     * args: [type, status]
+     * args: [type, status, count]
      */
     UPLOAD_COMPLETE: 'uploadComplete',
     /**
@@ -363,7 +363,7 @@ function _uploadArray(type, titleArray, headerArray, newDataArray) {
                 console.log(`分批上传 ${index} ${path}: `, data)
                 if (index == _chunkArray.length - 1) {
                     console.log(`最后一批上传完毕 ${index} ${path}: `, data)
-                    Events.dispatch(Events.UPLOAD_COMPLETE, type, 'success')
+                    Events.dispatch(Events.UPLOAD_COMPLETE, type, 'success', esDatas.length)
                 }
             })
             .catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
@@ -464,13 +464,31 @@ Events.listener(Events.OFFSET_MARKETING_DATA, ([offset, limit, datas]) => {
     this.sendToFront('info', `获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
 })
 
+// 监听csv文件补全后的内容事件
+Events.listener(Events.GENERATE_DATA_ARRAY, ([titleArray, headerArray, newDataArray]) => {
+    this.sendToFront('info', `csv文件补全完成，共 ${newDataArray.length} 条`)
+    // let newArray = [].concat(titleArray, headerArray, newDataArray)
+    // 准备将数据整理成 csv 格式
+    // const csvContent = "data:text/csv;charset=utf-8," + newArray.map(e => e.join(",")).join("\n");
+    // console.log("生成新的csv内容", csvContent)
+    // chrome.downloads.download({
+    //     url: URL.createObjectURL(new Blob([csvContent])),
+    //     filename: "datas.csv",
+    //     saveAs: true
+    // }, function (downloadId) {
+    //     console.log("Downloaded file with ID: " + downloadId);
+    // }, function () {
+    //     console.error("Failed to download");
+    // })
+})
+
 // 上传成功回调
-Events.listener(Events.UPLOAD_COMPLETE, ([type, status]) => {
+Events.listener(Events.UPLOAD_COMPLETE, ([type, status, count]) => {
     let index_name = getIndexName(type)
     let typename = getTypename(type)
-    let message = `${typename} ${getIndexName(type)}: 已成功上传服务器`
+    let message = `${typename} ${getIndexName(type)}: 已成功上传服务器 ${count} 条`
     if (status == 'exist') {
-        message = `昨日${typename}数据已上传过: ${getIndexName(type)}`
+        message = `昨日${typename}数据已上传过: ${getIndexName(type)} ${count} 条`
     }
     console.log('upload_complete: ', message)
     this.sendToFront('completed', message, type)

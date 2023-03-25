@@ -35,6 +35,7 @@ $(document).ready(function () {
 
     // 监听csv文件补全后的内容事件
     Events.listener(Events.GENERATE_DATA_ARRAY, ([titleArray, headerArray, newDataArray]) => {
+        appendText(`csv文件补全完成，共 ${newDataArray.length} 条`)
         // let newArray = [].concat(titleArray, headerArray, newDataArray)
         // 准备将数据整理成 csv 格式
         // const csvContent = "data:text/csv;charset=utf-8," + newArray.map(e => e.join(",")).join("\n");
@@ -50,10 +51,10 @@ $(document).ready(function () {
         // })
     })
 
-    Events.listener(Events.UPLOAD_COMPLETE, ([type, status]) => {
-        let message = `昨日${getTypename(type)} : 已成功上传服务器`
+    Events.listener(Events.UPLOAD_COMPLETE, ([type, status, count]) => {
+        let message = `昨日${getTypename(type)} : 已成功上传服务器 ${count} 条`
         if (status == 'exist') {
-            message = `昨日${getTypename(type)}数据: 已上传过`
+            message = `昨日${getTypename(type)}数据: 已上传过 ${count} 条`
         }
         appendText(message)
     })
