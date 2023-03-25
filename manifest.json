@@ -16,7 +16,8 @@
     "downloads"
   ],
   "host_permissions": [
-    "*://*.shopee.com.my/*"
+    "*://*.shopee.com.my/*",
+    "*://*.yj2025.com/*"
   ],
   "icons": {
     "16": "./img/icon-16.png",

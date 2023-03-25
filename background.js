@@ -349,19 +349,34 @@ function _uploadArray(type, titleArray, headerArray, newDataArray) {
     })
     console.log('esDatas', esDatas)
     let path = type == 0 ? '/ads/collecte-overall' : '/ads/collecte-keyword'
-    fetch(`${ES_BASE_URL}${path}`, {
-        method: 'POST',
-        body: JSON.stringify(esDatas),
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log(`post-response ${path}: `, data)
-            Events.dispatch(Events.UPLOAD_COMPLETE, type, 'success')
+    let _chunkArray = chunkArray(esDatas, 200)
+    _chunkArray.forEach((array, index) => {
+        fetch(`${ES_BASE_URL}${path}`, {
+            method: 'POST',
+            body: JSON.stringify(array),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         })
-        .catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+            .then(response => response.json())
+            .then(data => {
+                console.log(`分批上传 ${index} ${path}: `, data)
+                if (index == _chunkArray.length - 1) {
+                    console.log(`最后一批上传完毕 ${index} ${path}: `, data)
+                    Events.dispatch(Events.UPLOAD_COMPLETE, type, 'success')
+                }
+            })
+            .catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+    })
+}
+
+function chunkArray(arr, chunkSize) {
+    const chunkedArr = [];
+    for (let i = 0; i < arr.length; i += chunkSize) {
+        const chunk = arr.slice(i, i + chunkSize);
+        chunkedArr.push(chunk);
+    }
+    return chunkedArr;
 }
 
 // 发送消息给前端
