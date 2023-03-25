@@ -7,7 +7,6 @@ const ES_BASE_URL = 'http://127.0.0.1:5566'
 
 /**
  * 建议通过事件通知机制做跟业务无关的通知、展示等动作。
- * @type {{CHECK_FILE_ERROR: string, CHECK_FILE: string, EXPORT_FILE: string, dispatch(*, ...[*]): void, listeners: {}, listener(*, *): void, remove(*): void, GET_COOKIES: string, EXPORT_FILE_ERROR: string}}
  */
 const Events = {
     /**
@@ -23,7 +22,7 @@ const Events = {
      */
     CHECK_FILE: '_checkFile',
     /**
-     * args: [errMsg]
+     * args: [type, errMsg]
      */
     EXPORT_FILE_ERROR: 'exportFileError',
     /**
@@ -51,13 +50,13 @@ const Events = {
      */
     GENERATE_DATA_ARRAY: 'generateDataArray',
     /**
-     * args: [type, serverResponseResult]
+     * args: [type, status]
      */
     UPLOAD_COMPLETE: 'uploadComplete',
     /**
-     * args: [type,year,month,day]
+     * args: [url, error]
      */
-    UPLOADED_ERROR: 'uploadedError',
+    NETWORK_ERROR: 'networkError',
     listeners: {},
     /**
      * 触发事件
@@ -97,102 +96,48 @@ const Events = {
     },
 }
 
-// 监听获取cookie回调
-Events.listener(Events.GET_COOKIES, ([action, type, cookies]) => {
-    chrome.storage.sync.set({'cookies': cookies}, function () {
-    })
-})
-
-// 监听文件导出事件回调
-Events.listener(Events.EXPORT_FILE, ([type, file_res]) => {
-    let typename = type == 0 ? '综合数据' : '关键字数据'
-    let message = `开始导出${typename}` + ":" + file_res.fileid + '/' + file_res.filename
-    this.sendToFront('success', message)
-})
-
-// 监听文件生成检查状态回调
-Events.listener(Events.CHECK_FILE, ([type, res, status]) => {
-    let typename = type == 0 ? '综合数据' : '关键字数据'
-    if (status == 0) {
-        // 文件已生成
-        this.sendToFront('success', `${typename}: ${res.fileid}/${res.filename} 已经生成`)
-    }
-})
-
-// 监听导出失败事件
-Events.listener(Events.EXPORT_FILE_ERROR, (message) => {
-    this.sendToFront('error', `导出失败: ${message}`)
-})
-
-// 监听检查失败事件
-Events.listener(Events.CHECK_FILE_ERROR, (message) => {
-    this.sendToFront('error', `检查失败: ${message}`)
-})
-
-// 监听文件下载读取到内容事件
-Events.listener(Events.DOWNLOAD_FILE, (content) => {
-    // this.sendToFront('info', `文件内容: ${content}`)
-})
-
-// 监听分段获取广告列表
-Events.listener(Events.OFFSET_MARKETING_DATA, ([offset, limit, datas]) => {
-    this.sendToFront('info', `获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
-})
-
-// 上传成功回调
-Events.listener(Events.UPLOAD_COMPLETE, (type, result) => {
-    let y_m_d = [this.yesterday().getFullYear(), this.yesterday().getMonth(), this.yesterday().getDay()].join("_")
-    let index_name = `index_${type}_${y_m_d}`
-    chrome.storage.sync.set({index_name: true}, function () {
-        let typename = type == 0 ? '综合数据' : '关键字数据'
-        this.sendToFront('success', `${typename} ${y_m_d}: 已成功上传服务器`)
-        // 综合数据上传成功后，继续上传关键字数据
-        if (type == 0) {
-            this.fetchFile(1, false)
-        } else {
-            this.sendToFront('completed', `昨日数据${y_m_d}: 都已经上传完毕`)
-        }
-    })
-})
-
-// 监听已经上传过的错误消息
-Events.listener(Events.UPLOADED_ERROR, ([type, year, month, day]) => {
-    let typename = type == 0 ? '综合数据' : '关键字数据'
-    this.sendToFront(`昨日${typename}数据已上传过: ${year}-${month}-${day}`)
-    // 综合数据已经上传后，继续上传关键字数据
-    if (type == 0) {
-        this.fetchFile(1, false)
-    }
-})
-
 
 // 获取cookie
 function getCookie(callback) {
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        var domain = new URL(tabs[0].url).hostname;
-        // console.log(domain); // 输出当前页面的域名
-        chrome.cookies.getAll({}, function (cookie) {
-            let cookies = {}
-            for (let i = 0; i < cookie.length; i++) {
-                if (cookie[i].domain == domain) {
-                    // console.log('cookie', cookie[i])
-                    cookies[cookie[i]['name']] = cookie[i]['value']
+        if (tabs && tabs.length > 0) {
+            var domain = new URL(tabs[0].url).hostname;
+            // console.log(domain); // 输出当前页面的域名
+            chrome.cookies.getAll({}, function (cookie) {
+                let cookies = {}
+                for (let i = 0; i < cookie.length; i++) {
+                    if (cookie[i].domain == domain) {
+                        // console.log('cookie', cookie[i])
+                        cookies[cookie[i]['name']] = cookie[i]['value']
+                    }
                 }
-            }
-            callback(cookies)
-            Events.dispatch(Events.GET_COOKIES, cookies)
-            // console.log('cookies: ', cookies)
-        });
+                callback(cookies)
+                Events.dispatch(Events.GET_COOKIES, cookies)
+                // console.log('cookies: ', cookies)
+            });
+        }
     });
 }
 
-const yesterday = () => {
+function yesterday() {
     let yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     return yesterday
 }
 
-const startOfyesterday = () => {
+function yesterdayMonth() {
+    return yesterday().getMonth() + 1
+}
+
+function yesterdayYear() {
+    return yesterday().getFullYear()
+}
+
+function yesterdayDay() {
+    return yesterday().getDate()
+}
+
+function startOfyesterday() {
     let yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     let yesterdayStart = startOfDay(yesterday)
@@ -200,7 +145,7 @@ const startOfyesterday = () => {
     return yesterdayStart
 }
 
-const endOfYesterday = () => {
+function endOfYesterday() {
     let yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     let yesterdayStart = startOfDay(yesterday)
@@ -223,23 +168,22 @@ function startOfDay(date) {
 
 // 请求导出数据文件
 function _exportFile(type, force, callback) {
-    let _yesterday = yesterday()
-    let y_m_d = [_yesterday.getFullYear(), _yesterday.getMonth(), _yesterday.getDay()].join("_")
-    let index_name = `index_${type}_${y_m_d}`
-    chrome.storage.sync.get(index_name, function (boolVal) {
+    let index_name = getIndexName(type)
+    chrome.storage.local.get([index_name], function (result) {
         // 昨日数据已经上传过,并且没有指定强制上传则退出
-        if (boolVal && !force) {
-            Events.dispatch(Events.UPLOADED_ERROR, type, _yesterday.getFullYear(), _yesterday.getMonth(), _yesterday.getDay())
+        if (result[index_name] && result[index_name] == 'uploaded' && !force) {
+            Events.dispatch(Events.UPLOAD_COMPLETE, type, 'exist')
         } else {
             getCookie((cookies) => {
-                fetch(`https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`)
+                const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
+                fetch(url)
                     .then(response => response.json())
                     .then(data => {
                         console.log('fetch /api/marketing/v3/pas/report_file/export: ', data)
                         if (data.code == 0) {
                             let arrayKey = `array${type}`
                             let res = {"fileid": data.data.fileid, "filename": data.data.file_name}
-                            chrome.storage.sync.get(arrayKey, function (result) {
+                            chrome.storage.local.get([arrayKey], function (result) {
                                 if (!result.array0) {
                                     result.array0 = []
                                 }
@@ -248,16 +192,15 @@ function _exportFile(type, force, callback) {
                                 }
                                 result.array0.push(res)
                                 // 保存最新的10条下载记录
-                                chrome.storage.sync.set({arrayKey: result.array0}, function () {
+                                chrome.storage.local.set({arrayKey: result.array0}, function () {
                                 })
                                 callback(res)
                                 Events.dispatch(Events.EXPORT_FILE, type, res)
                             });
                         } else {
-                            Events.dispatch(Events.EXPORT_FILE_ERROR, data.message)
+                            Events.dispatch(Events.EXPORT_FILE_ERROR, type, data.message)
                         }
-
-                    })
+                    }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
             })
         }
     })
@@ -269,7 +212,8 @@ function _exportFile(type, force, callback) {
 function _checkFile(type, res, callback) {
     getCookie((cookies) => {
         const check_status = () => {
-            fetch(`https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/batch/?fileid_list=[${res.fileid}]&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`)
+            const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/batch/?fileid_list=[${res.fileid}]&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     console.log('fetch /api/marketing/v3/pas/report_file/batch: ', data)
@@ -287,7 +231,7 @@ function _checkFile(type, res, callback) {
                         Events.dispatch(Events.CHECK_FILE_ERROR, data.message)
                     }
 
-                })
+                }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
         }
         // 延迟两秒后执行检查文件是否已生成
         setTimeout(check_status, 2000);
@@ -298,16 +242,17 @@ function _checkFile(type, res, callback) {
 // 下载文件
 function _downloadFile(type, res, callback) {
     getCookie((cookies) => {
-        fetch(`https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2&fileid=${res.fileid}`)
+        const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2&fileid=${res.fileid}`
+        fetch(url)
             .then(response => response.arrayBuffer())
             .then(arrayBuf => {
                 console.log('fetch /api/marketing/v3/pas/report_file: ', arrayBuf.byteLength)
                 const textDecoder = new TextDecoder('utf-8');
                 const textContent = textDecoder.decode(arrayBuf);
-                console.log('文件内容', textContent);
+                // console.log('文件内容', textContent);
                 callback(textContent)
                 Events.dispatch(Events.DOWNLOAD_FILE, textContent)
-            })
+            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
 
     })
 }
@@ -357,7 +302,8 @@ function _fillContent(type, res, content, callback) {
     let marketingData = []
     const fetchMarketingData = (offset, limit) => {
         getCookie((cookies) => {
-            fetch(`https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/homepage/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2&campaign_type=cpc_homepage&campaign_state=all&sort_key=performance&sort_direction=1&search_content=&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&offset=${offset}&limit=${limit}`)
+            const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/homepage/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2&campaign_type=cpc_homepage&campaign_state=all&sort_key=performance&sort_direction=1&search_content=&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&offset=${offset}&limit=${limit}`
+            fetch(url)
                 .then(response => response.json())
                 .then(value => {
                     console.log('fetch /api/marketing/v3/pas/homepage: ', value)
@@ -377,7 +323,7 @@ function _fillContent(type, res, content, callback) {
                     } else {
                         Events.dispatch(Events.MARKETING_DATA_ERROR, value.message)
                     }
-                })
+                }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
         })
     }
     fetchMarketingData(0, 20)
@@ -401,15 +347,14 @@ function _uploadArray(type, titleArray, headerArray, newDataArray) {
     console.log('titleArray', titleArray)
     let esDatas = newDataArray.map(data => {
         let shopId = titleArray[4][1].replace('\r', '')
-        let _yesterday = yesterday()
         let line = {
-            'id': `${shopId}_${_yesterday.getFullYear()}_${_yesterday.getMonth()}_${_yesterday.getDay()}_${data[0]}`,
+            'id': `${shopId}_${yesterdayYear()}_${yesterdayMonth()}_${yesterdayDay()}_${data[0]}`,
             'shopId': shopId,
             'startTime': new Date(startOfyesterday() * 1000),
             'endTime': new Date(endOfYesterday() * 1000),
-            'year': _yesterday.getFullYear(),
-            'month': _yesterday.getMonth(),
-            'day': _yesterday.getDay()
+            'year': yesterdayYear(),
+            'month': yesterdayMonth(),
+            'day': yesterdayDay()
         }
         data.forEach((v, index) => {
             let header = headerArray[0][index]
@@ -437,17 +382,20 @@ function _uploadArray(type, titleArray, headerArray, newDataArray) {
         .then(response => response.json())
         .then(data => {
             console.log(`post-response ${path}: `, data)
-            Events.dispatch(Events.UPLOAD_COMPLETE, type, data)
+            Events.dispatch(Events.UPLOAD_COMPLETE, type, 'success')
         })
-        .catch(error => console.error(error));
+        .catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
 }
 
 // 发送消息给前端
-function sendToFront(type, message) {
+function sendToFront(type, message, data = null) {
     chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-            type: type, message: message
-        });
+        if (tabs && tabs.length > 0) {
+            console.log('tabs', tabs)
+            chrome.tabs.sendMessage(tabs[0].id, {
+                'type': type, 'message': message, 'data': data
+            });
+        }
     });
 }
 
@@ -478,6 +426,93 @@ function fetchFile(type, force) {
     })
 }
 
+function getTypename(type) {
+    let typename = type == 0 ? '综合数据' : '关键字数据'
+    return typename
+}
+
+function getIndexName(type) {
+    let y_m_d = [yesterdayYear(), yesterdayMonth(), yesterdayDay()].join("_")
+    let index_name = `index_${type}_${y_m_d}`
+    return index_name
+}
+
+function resetUploadedStatus() {
+    [0, 1].forEach(type => {
+        let index_name = getIndexName(type)
+        chrome.storage.local.remove(index_name, function () {
+            let message = `${index_name}: 已经标记删除,可以再次上传`
+            console.log('resetUploadedStatus: ', message)
+            this.sendToFront('success', message)
+        })
+    })
+}
+
+
+// 监听获取cookie回调
+Events.listener(Events.GET_COOKIES, ([action, type, cookies]) => {
+    chrome.storage.local.set({'cookies': cookies}, function () {
+    })
+})
+
+// 监听文件导出事件回调
+Events.listener(Events.EXPORT_FILE, ([type, file_res]) => {
+    let message = `导出${getTypename(type)}` + ":" + file_res.fileid + '/' + file_res.filename
+    this.sendToFront('success', message)
+})
+
+// 监听文件生成检查状态回调
+Events.listener(Events.CHECK_FILE, ([type, res, status]) => {
+    if (status == 0) {
+        // 文件已生成
+        this.sendToFront('success', `${getTypename(type)}: ${res.fileid}/${res.filename} 已经生成`)
+    }
+})
+
+// 监听导出失败事件
+Events.listener(Events.EXPORT_FILE_ERROR, ([type, message]) => {
+    this.sendToFront('error', `导出${getTypename(type)}失败: ${message}`)
+})
+
+// 监听检查失败事件
+Events.listener(Events.CHECK_FILE_ERROR, (message) => {
+    this.sendToFront('error', `检查失败: ${message}`)
+})
+
+// 监听文件下载读取到内容事件
+Events.listener(Events.DOWNLOAD_FILE, (content) => {
+    // this.sendToFront('info', `文件内容: ${content}`)
+})
+
+// 监听分段获取广告列表
+Events.listener(Events.OFFSET_MARKETING_DATA, ([offset, limit, datas]) => {
+    this.sendToFront('info', `获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
+})
+
+// 上传成功回调
+Events.listener(Events.UPLOAD_COMPLETE, ([type, status]) => {
+    let index_name = getIndexName(type)
+    let typename = getTypename(type)
+    chrome.storage.local.set({index_name: 'uploaded'}, function () {
+        let message = `${typename} ${getIndexName(type)}: 已成功上传服务器`
+        if (status == 'exist') {
+            message = `昨日${typename}数据已上传过: ${getIndexName(type)}`
+        }
+        console.log('upload_complete: ', message)
+        this.sendToFront('completed', message, type)
+
+        chrome.storage.local.get([index_name], function (result) {
+            debugger
+            console.log('result_index_name: ', result[index_name])
+        })
+    })
+
+})
+
+// 请求失败回调
+Events.listener(Events.NETWORK_ERROR, ([url, error]) => {
+    this.sendToFront('error', `请求地址 ${url}失败: ${error.message}`)
+})
 
 // 应用安装完成后提示
 chrome.runtime.onInstalled.addListener(function (details) {
@@ -502,11 +537,21 @@ chrome.webNavigation.onCompleted.addListener(function (details) {
 });
 
 
-// 后台接收前端发送过来的消息
+// 接收前端发送过来的消息
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log('收到前台消息:', request.message)
     if (request.type == 'fetch') {
-        this.sendToFront('beginFetch', '开始收集数据')
-        this.fetchFile(0, true)
+        this.sendToFront('info', `开始收集${getTypename(request.data)}数据`)
+        this.fetchFile(request.data, false)
     }
+})
+
+
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+    console.log(
+      `Storage key "${key}" in namespace "${namespace}" changed.`,
+      `Old value was "${oldValue}", new value is "${newValue}".`
+    );
+  }
 })

@@ -2,22 +2,20 @@ $(document).ready(function () {
 
     // 监听文件导出事件回调,在页面显示
     Events.listener(Events.EXPORT_FILE, ([type, file_res]) => {
-        let typename = type == 0 ? '综合数据' : '关键字数据'
-        let message = `开始导出${typename}` + ":" + file_res.fileid + '/' + file_res.filename
+        let message = `导出${getTypename(type)}` + ":" + file_res.fileid + '/' + file_res.filename
         appendText(message)
     })
 
     // 监听文件生成检查状态回调
     Events.listener(Events.CHECK_FILE, ([type, res, status]) => {
-        let typename = type == 0 ? '综合数据' : '关键字数据'
         let status_name = status == 0 ? '文件已生成' : '文件生成中'
-        let message = `${typename}${status_name}` + ":" + res.fileid + '/' + res.filename
+        let message = `${getTypename(type)}${status_name}` + ":" + res.fileid + '/' + res.filename
         appendText(message)
     })
 
     // 监听导出失败事件
-    Events.listener(Events.EXPORT_FILE_ERROR, ([message]) => {
-        appendText(`导出失败: ${message}`)
+    Events.listener(Events.EXPORT_FILE_ERROR, ([type, message]) => {
+        appendText(`导出${getTypename(type)}失败: ${message}`)
     })
 
     // 监听检查失败事件
@@ -35,18 +33,12 @@ $(document).ready(function () {
         appendText(`获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
     })
 
-    // 监听已经上传过的错误消息
-    Events.listener(Events.UPLOADED_ERROR, ([type, year, month, day]) => {
-        let typename = type == 0 ? '综合数据' : '关键字数据'
-        appendText(`昨日${typename}数据已上传过: ${year}-${month}-${day}`)
-    })
-
     // 监听csv文件补全后的内容事件
     Events.listener(Events.GENERATE_DATA_ARRAY, ([titleArray, headerArray, newDataArray]) => {
-        let newArray = [].concat(titleArray, headerArray, newDataArray)
+        // let newArray = [].concat(titleArray, headerArray, newDataArray)
         // 准备将数据整理成 csv 格式
-        const csvContent = "data:text/csv;charset=utf-8," + newArray.map(e => e.join(",")).join("\n");
-        console.log("生成新的csv内容", csvContent)
+        // const csvContent = "data:text/csv;charset=utf-8," + newArray.map(e => e.join(",")).join("\n");
+        // console.log("生成新的csv内容", csvContent)
         // chrome.downloads.download({
         //     url: URL.createObjectURL(new Blob([csvContent])),
         //     filename: "datas.csv",
@@ -58,9 +50,12 @@ $(document).ready(function () {
         // })
     })
 
-    Events.listener(Events.UPLOAD_COMPLETE, (type, result) => {
-        let typename = type == 0 ? '综合数据' : '关键字数据'
-        appendText(`${typename}: 已成功上传服务器`)
+    Events.listener(Events.UPLOAD_COMPLETE, ([type, status]) => {
+        let message = `昨日${getTypename(type)} : 已成功上传服务器`
+        if (status == 'exist') {
+            message = `昨日${getTypename(type)}数据: 已上传过`
+        }
+        appendText(message)
     })
 
     function appendText(message) {
@@ -79,27 +74,13 @@ $(document).ready(function () {
         fetchFile(1, true)
     })
 
+
     $('#clear').click((event) => {
         $('#myText').text('')
     })
 
-    // 监听radio事件
-    $("input:radio[name='showMsg']").change(function () {
-        let _show = Number($(this).val())
-        chrome.storage.sync.set({'showMsg': _show}, function () {
-        })
+    $('#reset').click((event) => {
+        resetUploadedStatus()
     })
-
-    // 默认初始化选中
-    chrome.storage.sync.get('showMsg', function (result) {
-        if (result.showMsg && Number(result.showMsg) == 1) {
-            $('#show0').attr('checked', true);
-            $('#show1').attr('checked', false);
-        } else {
-            $('#show0').attr('checked', false);
-            $('#show1').attr('checked', true);
-        }
-    })
-
 
 })
