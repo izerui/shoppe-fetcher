@@ -74,13 +74,8 @@ $(document).ready(function () {
         fetchFile(1, true)
     })
 
-
     $('#clear').click((event) => {
         $('#myText').text('')
-    })
-
-    $('#reset').click((event) => {
-        resetUploadedStatus()
     })
 
 })
