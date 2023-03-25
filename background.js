@@ -3,7 +3,7 @@
 const SHOPEE_BASE_DOMAIN = 'seller.shopee.com.my'
 const SHOPEE_CF_BASE_DOMAIN = 'cf.shopee.com.my'
 
-const ES_BASE_URL = 'http://127.0.0.1:5566'
+const ES_BASE_URL = 'https://shopee-collector-aws.yj2025.com'
 
 /**
  * 建议通过事件通知机制做跟业务无关的通知、展示等动作。
