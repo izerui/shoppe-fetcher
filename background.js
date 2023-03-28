@@ -54,6 +54,10 @@ const Events = {
      */
     UPLOAD_COMPLETE: 'uploadComplete',
     /**
+     * args: [type, date, shopInfo]
+     */
+    UPLOAD_EXIST: 'uploadExist',
+    /**
      * args: [shopInfo]
      */
     SHOP_INFO_RESULT: 'shopInfoResult',
@@ -172,7 +176,6 @@ function _getShopInfo(callback) {
                 callback(result)
                 Events.dispatch(Events.SHOP_INFO_RESULT, result)
             }).catch(error => {
-            debugger
             Events.dispatch(Events.NETWORK_ERROR, url, error)
         })
     })
@@ -356,7 +359,8 @@ function _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArra
     let path = type == 0 ? '/ads/collecte-overall' : '/ads/collecte-keyword'
     let _chunkArray = chunkArray(esDatas, 200)
     _chunkArray.forEach((array, index) => {
-        fetch(`${ES_BASE_URL}${path}`, {
+        let url = `${ES_BASE_URL}${path}`
+        fetch(url, {
             method: 'POST',
             body: JSON.stringify(array),
             headers: {
@@ -409,14 +413,21 @@ function sendToNotify(message) {
 // 下载指定类型的昨日数据
 function fetchFile(type, date, force) {
     _getShopInfo(shopInfo => {
+        let shopid = shopInfo.shopid.toString()
         let indexName = getIndexName(type, date, shopInfo)
-        // 例子: 833005508_index_0_2023_3_28
-        chrome.storage.local.get([indexName], function (result) {
-            let uploadedCount = result[indexName]
-            if (!force && uploadedCount != undefined && uploadedCount > 0) {
-                console.log(`${indexName} 已经上传过${uploadedCount}条记录,不再重复上传`)
-                return
+        // 例: 833005508_index_0_2023_3_28
+        chrome.storage.local.get([shopid], function (result) {
+            // 本地判断是否上传过，如果已经上传过则不再上传
+            let shopObj = result[shopid]
+            if (!force && shopObj) {
+                let indexArray = type == 0 ? shopObj.type0 : shopObj.type1
+                if (indexArray.includes(indexName)) {
+                    Events.dispatch(Events.UPLOAD_EXIST, type, date, shopInfo)
+                    console.log(`${indexName} 已经上传过,不再重复上传`)
+                    return
+                }
             }
+            // TODO 判断服务器端是否已经上传过
 
             // 导出文件
             _exportFile(type, date, shopInfo, (res) => {
@@ -431,7 +442,6 @@ function fetchFile(type, date, force) {
                     })
                 })
             })
-
         })
     })
 }
@@ -502,21 +512,39 @@ Events.listener(Events.GENERATE_DATA_ARRAY, ([type, date, shopInfo, titleArray, 
 
 // 上传成功回调
 Events.listener(Events.UPLOAD_COMPLETE, ([type, date, shopInfo, count]) => {
-    let index_name = getIndexName(type, date, shopInfo)
-    let obj = {}
-    obj[index_name] = count
-    chrome.storage.local.set(obj, function () {
-        let typename = getTypename(type)
-        let message = `${typename} ${index_name}: 已成功上传服务器 ${count} 条`
-        console.log('upload_complete: ', message)
-        this.sendToFront('completed', message, type)
+    let shopid = shopInfo.shopid.toString()
+    let indexName = getIndexName(type, date, shopInfo)
+    chrome.storage.local.get([shopid], function (result) {
+        let shopObj = result[shopid]
+        if (!shopObj) {
+            shopObj = {}
+            shopObj[shopid] = {
+                'type0': new Array(7),
+                'type1': new Array(7)
+            }
+        }
+        if (type == 0) {
+            shopObj[shopid].type0 = shopObj.type0 ? shopObj.type0 : new Array(7)
+            shopObj[shopid].type0.shift()
+            shopObj[shopid].type0.push(indexName)
+        } else {
+            shopObj[shopid].type1 = shopObj.type1 ? shopObj.type1 : new Array(7)
+            shopObj[shopid].type1.shift()
+            shopObj[shopid].type1.push(indexName)
+        }
+        chrome.storage.local.set(shopObj, function () {
+            let typename = getTypename(type)
+            let message = `${typename} ${index_name}: 已成功上传服务器 ${count} 条`
+            console.log('upload_complete: ', message)
+            this.sendToFront('completed', message, type)
+        })
     })
 })
 
 // 请求失败回调
 Events.listener(Events.NETWORK_ERROR, ([url, error]) => {
     let message = `请求地址 ${url}失败: ${error.message}`
-    console.log(message)
+    console.error(message)
     this.sendToFront('error', message)
 })
 

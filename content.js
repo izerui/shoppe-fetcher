@@ -26,8 +26,8 @@ function fetch1() {
 
 
 window.addEventListener('load', (event) => {
-    setInterval(fetch0, 1000 * 20)
-    setInterval(fetch1, 1000 * 40)
+    // setInterval(fetch0, 1000 * 20)
+    // setInterval(fetch1, 1000 * 40)
 });
 
 

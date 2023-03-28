@@ -59,6 +59,11 @@ $(document).ready(function () {
         appendText(message)
     })
 
+    Events.listener(Events.UPLOAD_EXIST, ([type, date, shopInfo]) => {
+        let indexName = getIndexName(type, date, shopInfo)
+        appendText(`${indexName}已经上传过, 不再重复上传`)
+    })
+
     function appendText(message) {
         let text = $('#myText').text()
         $('#myText').text(text + message + '\n')
@@ -67,12 +72,12 @@ $(document).ready(function () {
 
     // 收集昨日综合数据
     $('#btn_0').click((event) => {
-        fetchFile(0, new Date(), true)
+        fetchFile(0, new Date(), false)
     })
 
     // 收集昨日关键字数据
     $('#btn_1').click((event) => {
-        fetchFile(1, new Date(), true)
+        fetchFile(1, new Date(), false)
     })
 
     $('#clear').click((event) => {
