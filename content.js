@@ -1,46 +1,36 @@
 console.log('====================已经加载虾皮广告收集器====================')
 
-var status0 = false
-
-var status1 = false
-
-function fetch0() {
-    console.log('content.js: ', '检测并开始收集综合广告数据...')
-    if (!status0) {
-        // 通知后台开始收集综合广告数据
-        chrome.runtime.sendMessage({type: 'fetch', message: '开始收集综合广告数据', data: 0})
-    } else {
-        console.log('综合广告数据已上传过,不再重复收集')
-    }
-}
-
-function fetch1() {
-    console.log('content.js: ', '检测并开始收集关键字广告数据...')
-    if (!status1) {
-        // 通知后台开始收集综合广告数据
-        chrome.runtime.sendMessage({type: 'fetch', message: '开始收集关键字广告数据', data: 1})
-    } else {
-        console.log('关键字数据已上传过,不再重复收集')
-    }
-}
-
-
 window.addEventListener('load', (event) => {
-    // setInterval(fetch0, 1000 * 20)
-    // setInterval(fetch1, 1000 * 40)
-});
+    setInterval(() => {
+        console.log('content.js: ', '检测并开始收集广告数据...')
+        // 通知后台开始收集综合广告数据
+        chrome.runtime.sendMessage({type: 'fetch', message: '开始收集综合广告数据', data: {type: 0, date: today(-1)}})
+    }, 1000 * 60 * 1)
+})
 
 
 // 监听后台消息，这里处理后台任务处理后的前端提示
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    console.log('插件消息:', request.message)
-    if (request.type == 'completed') {
-        if (request.data == 0) {
-            status0 = true
-        } else {
-            status1 = true
-        }
+    if (request.type == 'error') {
+        console.error('插件消息:', request.message)
+    } else {
+        console.log('插件消息:', request.message)
     }
+    console.log('插件消息:', request.message)
+    // 消息类型为完成状态
+    // if (request.type == 'completed') {
+    //     let data = request.data
+    //     // 数据类型为综合数据
+    //     if (data.type == 0) {
+    //         chrome.runtime.sendMessage({
+    //             type: 'fetch',
+    //             message: '开始收集关键字广告数据',
+    //             data: {type: 1, date: data.date}
+    //         })
+    //     } else {
+    //         status1 = true
+    //     }
+    // }
 
     if (request.type == 'success') {
         $.toast({
@@ -72,3 +62,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         })
     }
 });
+
+
+function today(offset) {
+    let date = new Date()
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    date = new Date(date.getTime() + offset * 86400000)
+    return date
+}

@@ -62,9 +62,9 @@ const Events = {
      */
     SHOP_INFO_RESULT: 'shopInfoResult',
     /**
-     * args: [url, error]
+     * args: [shopInfo]
      */
-    NETWORK_ERROR: 'networkError',
+    SHOP_STORAGE_RESET_SUCCESS: 'shopStorageResetSuccess',
     /**
      * 监听器列表
      */
@@ -175,9 +175,7 @@ function _getShopInfo(callback) {
                 console.log('shopInfo: ', result)
                 callback(result)
                 Events.dispatch(Events.SHOP_INFO_RESULT, result)
-            }).catch(error => {
-            Events.dispatch(Events.NETWORK_ERROR, url, error)
-        })
+            }).catch(error => console.error(error))
     })
 }
 
@@ -194,9 +192,12 @@ function _exportFile(type, date, shopInfo, callback) {
                 callback(res)
                 Events.dispatch(Events.EXPORT_FILE, type, date, shopInfo, res)
             } else {
-                Events.dispatch(Events.EXPORT_FILE_ERROR, type, date, data.message)
+                Events.dispatch(Events.EXPORT_FILE_ERROR, type, date, shopInfo, data.message)
+                setTimeout(() => {
+                    _exportFile(type, date, shopInfo, callback)
+                }, 10000)
             }
-        }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+        }).catch(error => console.error(error))
 }
 
 // 检查文件是否已生成
@@ -221,7 +222,7 @@ function _checkFile(type, date, shopInfo, res, callback) {
                     Events.dispatch(Events.CHECK_FILE_ERROR, type, date, shopInfo, data.message)
                 }
 
-            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+            }).catch(error => console.error(error))
     }
     // 延迟两秒后执行检查文件是否已生成
     setTimeout(check_status, 2000);
@@ -239,7 +240,7 @@ function _downloadFile(type, date, shopInfo, res, callback) {
             // console.log('文件内容', textContent);
             callback(textContent)
             Events.dispatch(Events.DOWNLOAD_FILE, type, date, shopInfo, textContent)
-        }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+        }).catch(error => console.error(error))
 
 }
 
@@ -278,7 +279,7 @@ function _fillContent(type, date, shopInfo, res, content, callback) {
             newDataArray.push(lineArray)
         })
         let newArray = [].concat(titleArray, headerArray, newDataArray)
-        console.log('补充后数组信息:', newArray)
+        console.log(`${getTitleTip(type, date, shopInfo)} 补充后数组信息`, newArray)
         callback(titleArray, headerArray, newDataArray)
         Events.dispatch(Events.GENERATE_DATA_ARRAY, type, date, shopInfo, titleArray, headerArray, newDataArray)
     }
@@ -308,7 +309,7 @@ function _fillContent(type, date, shopInfo, res, content, callback) {
                 } else {
                     Events.dispatch(Events.MARKETING_DATA_ERROR, type, date, shopInfo, value.message)
                 }
-            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+            }).catch(error => console.error(error))
     }
     fetchMarketingData(0, 20)
 }
@@ -371,11 +372,11 @@ function _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArra
             .then(data => {
                 console.log(`分批上传 ${index} ${path}: `, data)
                 if (index == _chunkArray.length - 1) {
-                    console.log(`最后一批上传完毕 ${index} ${path}: `, data)
+                    console.log(`${getTitleTip(type, date, shopInfo)} 最后一批上传完毕 ${index} ${path}: `, data)
                     Events.dispatch(Events.UPLOAD_COMPLETE, type, date, shopInfo, esDatas.length)
                 }
             })
-            .catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+            .catch(error => console.error(error))
     })
 }
 
@@ -411,40 +412,68 @@ function sendToNotify(message) {
 }
 
 // 下载指定类型的昨日数据
-function fetchFile(type, date, force) {
-    _getShopInfo(shopInfo => {
+function fetchFile(type, date, shop, timeout = 0) {
+    if (date < today(-7)) {
+        console.log('超过7日内数据，不再收集')
+        return
+    }
+    const execution = (shopInfo) => {
         let shopid = shopInfo.shopid.toString()
         let indexName = getIndexName(type, date, shopInfo)
         // 例: 833005508_index_0_2023_3_28
         chrome.storage.local.get([shopid], function (result) {
             // 本地判断是否上传过，如果已经上传过则不再上传
             let shopObj = result[shopid]
-            if (!force && shopObj) {
+            if (shopObj) {
                 let indexArray = type == 0 ? shopObj.type0 : shopObj.type1
                 if (indexArray.includes(indexName)) {
                     Events.dispatch(Events.UPLOAD_EXIST, type, date, shopInfo)
-                    console.log(`${indexName} 已经上传过,不再重复上传`)
+                    console.log(`${getTitleTip(type, date, shopInfo)} 已经上传过,不再重复上传`)
                     return
                 }
             }
             // TODO 判断服务器端是否已经上传过
 
-            // 导出文件
-            _exportFile(type, date, shopInfo, (res) => {
-                // 检查文件是否生成
-                _checkFile(type, date, shopInfo, res, () => {
-                    // 下载文件
-                    _downloadFile(type, date, shopInfo, res, (content) => {
-                        // 补全商品图
-                        _fillContent(type, date, shopInfo, res, content, (titleArray, headerArray, newDataArray) => {
-                            _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArray)
+            // appendText('等待15秒后,继续上传...')
+            setTimeout(() => {
+                // 导出文件
+                _exportFile(type, date, shopInfo, (res) => {
+                    // 检查文件是否生成
+                    _checkFile(type, date, shopInfo, res, () => {
+                        // 下载文件
+                        _downloadFile(type, date, shopInfo, res, (content) => {
+                            // 补全商品图
+                            _fillContent(type, date, shopInfo, res, content, (titleArray, headerArray, newDataArray) => {
+                                _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArray)
+                            })
                         })
                     })
                 })
-            })
+            }, timeout)
+        })
+    }
+
+    if (shop) {
+        execution(shop)
+    } else {
+        _getShopInfo(shopInfo => {
+            execution(shopInfo)
+        })
+    }
+
+}
+
+function removeShopStorage() {
+    _getShopInfo((shopInfo) => {
+        let _arr = []
+        _arr.push(shopInfo.shopid.toString())
+        chrome.storage.local.remove(_arr, function () {
+            Events.dispatch(Events.SHOP_STORAGE_RESET_SUCCESS, shopInfo)
+            console.log('重置上传状态成功')
         })
     })
 }
+
 
 function getTypename(type) {
     let typename = type == 0 ? '综合数据' : '关键字数据'
@@ -457,10 +486,23 @@ function getIndexName(type, date, shopInfo) {
     return index_name
 }
 
+function getTitleTip(type, date) {
+    let y_m_d = getYmdArray(date).join("_")
+    let tip = `${y_m_d}/${getTypename(type)}: `
+    return tip
+}
+
+
+function getTitleTip(type, date, shopInfo) {
+    let y_m_d = getYmdArray(date).join("_")
+    let tip = `${shopInfo.shopid}/${y_m_d}/${getTypename(type)}: `
+    return tip
+}
+
 
 // 监听文件导出事件回调
 Events.listener(Events.EXPORT_FILE, ([type, date, shopInfo, file_res]) => {
-    let message = `导出${getTypename(type)}` + ":" + file_res.fileid + '/' + file_res.filename
+    let message = `${getTitleTip(type, date, shopInfo)} 导出` + ":" + file_res.fileid + '/' + file_res.filename
     this.sendToFront('success', message)
 })
 
@@ -468,18 +510,18 @@ Events.listener(Events.EXPORT_FILE, ([type, date, shopInfo, file_res]) => {
 Events.listener(Events.CHECK_FILE, ([type, date, shopInfo, res, status]) => {
     if (status == 0) {
         // 文件已生成
-        this.sendToFront('success', `${getTypename(type)}: ${res.fileid}/${res.filename} 已经生成`)
+        this.sendToFront('success', `${getTitleTip(type, date, shopInfo)} ${res.fileid}/${res.filename} 已经生成`)
     }
 })
 
 // 监听导出失败事件
-Events.listener(Events.EXPORT_FILE_ERROR, ([type, date, message]) => {
-    this.sendToFront('error', `导出${getTypename(type)}失败: ${message}`)
+Events.listener(Events.EXPORT_FILE_ERROR, ([type, date, shopInfo, message]) => {
+    this.sendToFront('error', `${getTitleTip(type, date, shopInfo)} 导出失败, ${message}, 10秒后重试...`)
 })
 
 // 监听检查失败事件
 Events.listener(Events.CHECK_FILE_ERROR, ([type, date, shopInfo, message]) => {
-    this.sendToFront('error', `检查失败: ${message}`)
+    this.sendToFront('error', `${getTitleTip(type, date, shopInfo)} 检查失败,${message}`)
 })
 
 // 监听文件下载读取到内容事件
@@ -489,12 +531,12 @@ Events.listener(Events.DOWNLOAD_FILE, ([type, date, shopInfo, content]) => {
 
 // 监听分段获取广告列表
 Events.listener(Events.OFFSET_MARKETING_DATA, ([type, date, shopInfo, offset, limit, datas]) => {
-    this.sendToFront('info', `获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
+    this.sendToFront('info', `${getTitleTip(type, date, shopInfo)} 获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
 })
 
 // 监听csv文件补全后的内容事件
 Events.listener(Events.GENERATE_DATA_ARRAY, ([type, date, shopInfo, titleArray, headerArray, newDataArray]) => {
-    this.sendToFront('info', `csv文件补全完成，共 ${newDataArray.length} 条`)
+    this.sendToFront('info', `${getTitleTip(type, date, shopInfo)} csv文件补全完成，共 ${newDataArray.length} 条`)
     // let newArray = [].concat(titleArray, headerArray, newDataArray)
     // 准备将数据整理成 csv 格式
     // const csvContent = "data:text/csv;charset=utf-8," + newArray.map(e => e.join(",")).join("\n");
@@ -517,35 +559,34 @@ Events.listener(Events.UPLOAD_COMPLETE, ([type, date, shopInfo, count]) => {
     chrome.storage.local.get([shopid], function (result) {
         let shopObj = result[shopid]
         if (!shopObj) {
-            shopObj = {}
-            shopObj[shopid] = {
+            shopObj = {
                 'type0': new Array(7),
                 'type1': new Array(7)
             }
         }
         if (type == 0) {
-            shopObj[shopid].type0 = shopObj.type0 ? shopObj.type0 : new Array(7)
-            shopObj[shopid].type0.shift()
-            shopObj[shopid].type0.push(indexName)
+            shopObj.type0 = shopObj.type0 ? shopObj.type0 : new Array(7)
+            shopObj.type0.shift()
+            shopObj.type0.push(indexName)
         } else {
-            shopObj[shopid].type1 = shopObj.type1 ? shopObj.type1 : new Array(7)
-            shopObj[shopid].type1.shift()
-            shopObj[shopid].type1.push(indexName)
+            shopObj.type1 = shopObj.type1 ? shopObj.type1 : new Array(7)
+            shopObj.type1.shift()
+            shopObj.type1.push(indexName)
         }
-        chrome.storage.local.set(shopObj, function () {
+        let storeShops = {}
+        storeShops[shopid] = shopObj
+        chrome.storage.local.set(storeShops, function () {
             let typename = getTypename(type)
-            let message = `${typename} ${index_name}: 已成功上传服务器 ${count} 条`
+            let message = `${getTitleTip(type, date, shopInfo)} 已成功上传服务器 ${count} 条`
             console.log('upload_complete: ', message)
-            this.sendToFront('completed', message, type)
+            this.sendToFront('completed', message, {'type': type, 'date': date, 'shopInfo': shopInfo})
         })
     })
 })
 
-// 请求失败回调
-Events.listener(Events.NETWORK_ERROR, ([url, error]) => {
-    let message = `请求地址 ${url}失败: ${error.message}`
-    console.error(message)
-    this.sendToFront('error', message)
+
+Events.listener(Events.SHOP_STORAGE_RESET_SUCCESS, ([shopInfo]) => {
+    this.sendToFront('info', `商店: ${shopInfo.shopid} 重置上传状态成功`)
 })
 
 // 应用安装完成后提示
@@ -574,13 +615,11 @@ chrome.webNavigation.onCompleted.addListener(function (details) {
 // 接收前端发送过来的消息
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log('收到前台消息:', request.message)
-    chrome.storage.local.set({'valuedddd': 'sssssssss'}, function () {
-        console.log('result.valuedddd', '设置已保存')
-    })
     if (request.type == 'fetch') {
-        this.sendToFront('info', `开始收集${getTypename(request.data)}数据`)
+        let data = request.data
+        console.log('request content: ', request.type, request.message, data)
         // 下载今日数据
-        this.fetchFile(request.data, new Date(), false)
+        this.fetchFile(data.type, data.date, null, 0)
     }
 })
 
