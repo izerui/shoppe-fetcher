@@ -14,49 +14,56 @@ const Events = {
      */
     GET_COOKIES: 'getCookies',
     /**
-     * args: [type, fileObj]
+     * args: [type, date, shopInfo, fileObj]
      */
     EXPORT_FILE: '_exportFile',
     /**
-     * args: [type, fileObj, status]
+     * args: [type, date, shopInfo, fileObj, status]
      */
     CHECK_FILE: '_checkFile',
     /**
-     * args: [type, errMsg]
+     * args: [type, date, shopInfo, errMsg]
      */
     EXPORT_FILE_ERROR: 'exportFileError',
     /**
-     * args: [errMsg]
+     * args: [type, date,shopInfo, errMsg]
      */
     CHECK_FILE_ERROR: 'checkFileError',
     /**
-     * args: [textContent]
+     * args: [type, date, shopInfo, textContent]
      */
     DOWNLOAD_FILE: '_downloadFile',
     /**
-     * args: [offset, limit, offsetDatas]
+     * args: [type, date, shopInfo, offset, limit, offsetDatas]
      */
     OFFSET_MARKETING_DATA: 'offsetMarketingData',
     /**
-     * args: [datas]
+     * args: [type, date, shopInfo, datas]
      */
     MARKETING_DATA: 'marketingData',
     /**
-     * args: [errMsg]
+     * args: [type, date, shopInfo, errMsg]
      */
     MARKETING_DATA_ERROR: 'marketingDataError',
     /**
-     * args: [titleArray, headerArray, newDataArray]
+     * args: [type, date, shopInfo, titleArray, headerArray, newDataArray]
      */
     GENERATE_DATA_ARRAY: 'generateDataArray',
     /**
-     * args: [type, status, count]
+     * args: [type, date, shopInfo, count]
      */
     UPLOAD_COMPLETE: 'uploadComplete',
+    /**
+     * args: [shopInfo]
+     */
+    SHOP_INFO_RESULT: 'shopInfoResult',
     /**
      * args: [url, error]
      */
     NETWORK_ERROR: 'networkError',
+    /**
+     * 监听器列表
+     */
     listeners: {},
     /**
      * 触发事件
@@ -96,6 +103,37 @@ const Events = {
     },
 }
 
+function today(offset) {
+    let date = new Date()
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    date = new Date(date.getTime() + offset * 86400000)
+    return date
+}
+
+function startOfDate(date) {
+    // 将时分秒设为0
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    // 取得时间戳
+    let timestamp = Math.floor(date.getTime() / 1000);
+    return timestamp
+}
+
+function endOfDate(date) {
+    date = new Date(date.getTime() + 86400000)
+    let timestamp = Math.floor(date.getTime() / 1000);
+    return timestamp
+}
+
+function getYmdArray(date) {
+    return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+}
+
 
 // 获取cookie
 function getCookie(callback) {
@@ -111,131 +149,99 @@ function getCookie(callback) {
                         cookies[cookie[i]['name']] = cookie[i]['value']
                     }
                 }
-                callback(cookies)
-                Events.dispatch(Events.GET_COOKIES, cookies)
-                // console.log('cookies: ', cookies)
+                // 修复bug： 当获取不到cookie的时候
+                if (cookies && cookies['SPC_CDS']) {
+                    callback(cookies)
+                    Events.dispatch(Events.GET_COOKIES, cookies)
+                } else {
+                    console.warn('未获取到cookies: ', cookies)
+                }
             });
         }
     });
 }
 
-function yesterday() {
-    let yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    return yesterday
-}
-
-function yesterdayMonth() {
-    return yesterday().getMonth() + 1
-}
-
-function yesterdayYear() {
-    return yesterday().getFullYear()
-}
-
-function yesterdayDay() {
-    return yesterday().getDate()
-}
-
-function startOfyesterday() {
-    let yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    let yesterdayStart = startOfDay(yesterday)
-    // console.log('startOfyesterday', yesterdayStart)
-    return yesterdayStart
-}
-
-function endOfYesterday() {
-    let yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    let yesterdayStart = startOfDay(yesterday)
-    let yesterdayEnd = startOfDay(new Date()) - 1
-    // console.log('yesterdayEnd', yesterdayEnd)
-    return yesterdayEnd
-}
-
-function startOfDay(date) {
-    // 将时分秒设为0
-    date.setHours(0);
-    date.setMinutes(0);
-    date.setSeconds(0);
-    date.setMilliseconds(0);
-    // 取得时间戳
-    let timestamp = Math.floor(date.getTime() / 1000);
-    return timestamp
+function _getShopInfo(callback) {
+    getCookie((cookies) => {
+        let url = `https://seller.shopee.com.my/api/v2/login/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
+        fetch(url)
+            .then(response => response.json())
+            .then(result => {
+                result = Object.assign(cookies, result)
+                console.log('shopInfo: ', result)
+                callback(result)
+                Events.dispatch(Events.SHOP_INFO_RESULT, result)
+            }).catch(error => {
+            debugger
+            Events.dispatch(Events.NETWORK_ERROR, url, error)
+        })
+    })
 }
 
 
 // 请求导出数据文件
-function _exportFile(type, force, callback) {
-    getCookie((cookies) => {
-        const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                console.log('fetch /api/marketing/v3/pas/report_file/export: ', data)
-                if (data.code == 0) {
-                    let res = {"fileid": data.data.fileid, "filename": data.data.file_name}
-                    callback(res)
-                    Events.dispatch(Events.EXPORT_FILE, type, res)
-                } else {
-                    Events.dispatch(Events.EXPORT_FILE_ERROR, type, data.message)
-                }
-            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
-    })
+function _exportFile(type, date, shopInfo, callback) {
+    const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfDate(date)}&end_time=${endOfDate(date)}&SPC_CDS=${shopInfo.SPC_CDS}&SPC_CDS_VER=2`
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('fetch /api/marketing/v3/pas/report_file/export: ', data)
+            if (data.code == 0) {
+                let res = {"fileid": data.data.fileid, "filename": data.data.file_name}
+                callback(res)
+                Events.dispatch(Events.EXPORT_FILE, type, date, shopInfo, res)
+            } else {
+                Events.dispatch(Events.EXPORT_FILE_ERROR, type, date, data.message)
+            }
+        }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
 }
 
 // 检查文件是否已生成
-function _checkFile(type, res, callback) {
-    getCookie((cookies) => {
-        const check_status = () => {
-            const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/batch/?fileid_list=[${res.fileid}]&SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    console.log('fetch /api/marketing/v3/pas/report_file/batch: ', data)
-                    if (data.code == 0) {
-                        let down_status = data.data[0].file_status
-                        if (down_status == 0) {
-                            // 文件已生成
-                            callback()
-                        } else {
-                            // 如果文件未生成继续延迟两秒检查状态
-                            setTimeout(check_status, 2000);
-                        }
-                        Events.dispatch(Events.CHECK_FILE, type, res, down_status)
+function _checkFile(type, date, shopInfo, res, callback) {
+    const check_status = () => {
+        const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/batch/?fileid_list=[${res.fileid}]&SPC_CDS=${shopInfo.SPC_CDS}&SPC_CDS_VER=2`
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('fetch /api/marketing/v3/pas/report_file/batch: ', data)
+                if (data.code == 0) {
+                    let down_status = data.data[0].file_status
+                    if (down_status == 0) {
+                        // 文件已生成
+                        callback()
                     } else {
-                        Events.dispatch(Events.CHECK_FILE_ERROR, data.message)
+                        // 如果文件未生成继续延迟两秒检查状态
+                        setTimeout(check_status, 2000);
                     }
+                    Events.dispatch(Events.CHECK_FILE, type, date, shopInfo, res, down_status)
+                } else {
+                    Events.dispatch(Events.CHECK_FILE_ERROR, type, date, shopInfo, data.message)
+                }
 
-                }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
-        }
-        // 延迟两秒后执行检查文件是否已生成
-        setTimeout(check_status, 2000);
-
-    })
+            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+    }
+    // 延迟两秒后执行检查文件是否已生成
+    setTimeout(check_status, 2000);
 }
 
 // 下载文件
-function _downloadFile(type, res, callback) {
-    getCookie((cookies) => {
-        const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2&fileid=${res.fileid}`
-        fetch(url)
-            .then(response => response.arrayBuffer())
-            .then(arrayBuf => {
-                console.log('fetch /api/marketing/v3/pas/report_file: ', arrayBuf.byteLength)
-                const textDecoder = new TextDecoder('utf-8');
-                const textContent = textDecoder.decode(arrayBuf);
-                // console.log('文件内容', textContent);
-                callback(textContent)
-                Events.dispatch(Events.DOWNLOAD_FILE, textContent)
-            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
+function _downloadFile(type, date, shopInfo, res, callback) {
+    const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/?SPC_CDS=${shopInfo.SPC_CDS}&SPC_CDS_VER=2&fileid=${res.fileid}`
+    fetch(url)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuf => {
+            console.log('fetch /api/marketing/v3/pas/report_file: ', arrayBuf.byteLength)
+            const textDecoder = new TextDecoder('utf-8');
+            const textContent = textDecoder.decode(arrayBuf);
+            // console.log('文件内容', textContent);
+            callback(textContent)
+            Events.dispatch(Events.DOWNLOAD_FILE, type, date, shopInfo, textContent)
+        }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
 
-    })
 }
 
 // 补充下载下来的csv文件，比如补充图片等信息
-function _fillContent(type, res, content, callback) {
+function _fillContent(type, date, shopInfo, res, content, callback) {
     const splitColumns = (lines) => {
         let array = []
         lines.forEach((line, index) => {
@@ -271,37 +277,35 @@ function _fillContent(type, res, content, callback) {
         let newArray = [].concat(titleArray, headerArray, newDataArray)
         console.log('补充后数组信息:', newArray)
         callback(titleArray, headerArray, newDataArray)
-        Events.dispatch(Events.GENERATE_DATA_ARRAY, titleArray, headerArray, newDataArray)
+        Events.dispatch(Events.GENERATE_DATA_ARRAY, type, date, shopInfo, titleArray, headerArray, newDataArray)
     }
 
     // 循环分页获取所有广告
     let is_fetch_completed = false
     let marketingData = []
     const fetchMarketingData = (offset, limit) => {
-        getCookie((cookies) => {
-            const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/homepage/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2&campaign_type=cpc_homepage&campaign_state=all&sort_key=performance&sort_direction=1&search_content=&start_time=${startOfyesterday()}&end_time=${endOfYesterday()}&offset=${offset}&limit=${limit}`
-            fetch(url)
-                .then(response => response.json())
-                .then(value => {
-                    console.log('fetch /api/marketing/v3/pas/homepage: ', value)
-                    if (value.code == 0) {
-                        marketingData = marketingData.concat(value.data.campaign_ads_list)
-                        Events.dispatch(Events.OFFSET_MARKETING_DATA, offset, limit, value.data.campaign_ads_list)
-                        let totalNum = value.data.total_count
-                        if (offset + value.data.campaign_ads_list.length >= totalNum) {
-                            is_fetch_completed = true
-                        }
-                        if (!is_fetch_completed) {
-                            fetchMarketingData(offset + limit, limit)
-                            return
-                        }
-                        fill(marketingData)
-                        Events.dispatch(Events.MARKETING_DATA, marketingData)
-                    } else {
-                        Events.dispatch(Events.MARKETING_DATA_ERROR, value.message)
+        const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/homepage/?SPC_CDS=${shopInfo.SPC_CDS}&SPC_CDS_VER=2&campaign_type=cpc_homepage&campaign_state=all&sort_key=performance&sort_direction=1&search_content=&start_time=${startOfDate(date)}&end_time=${endOfDate(date)}&offset=${offset}&limit=${limit}`
+        fetch(url)
+            .then(response => response.json())
+            .then(value => {
+                console.log('fetch /api/marketing/v3/pas/homepage: ', value)
+                if (value.code == 0) {
+                    marketingData = marketingData.concat(value.data.campaign_ads_list)
+                    Events.dispatch(Events.OFFSET_MARKETING_DATA, type, date, shopInfo, offset, limit, value.data.campaign_ads_list)
+                    let totalNum = value.data.total_count
+                    if (offset + value.data.campaign_ads_list.length >= totalNum) {
+                        is_fetch_completed = true
                     }
-                }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
-        })
+                    if (!is_fetch_completed) {
+                        fetchMarketingData(offset + limit, limit)
+                        return
+                    }
+                    fill(marketingData)
+                    Events.dispatch(Events.MARKETING_DATA, type, date, shopInfo, marketingData)
+                } else {
+                    Events.dispatch(Events.MARKETING_DATA_ERROR, type, date, shopInfo, value.message)
+                }
+            }).catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
     }
     fetchMarketingData(0, 20)
 }
@@ -320,18 +324,19 @@ const encodeHeaders = () => {
 }
 
 // 上传数据到云
-function _uploadArray(type, titleArray, headerArray, newDataArray) {
+function _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArray) {
     console.log('titleArray', titleArray)
     let esDatas = newDataArray.map(data => {
-        let shopId = titleArray[4][1].replace('\r', '')
+        // let shopId = titleArray[4][1].replace('\r', '')
+        let shopId = shopInfo.shopid
         let line = {
-            'id': `${shopId}_${yesterdayYear()}_${yesterdayMonth()}_${yesterdayDay()}_${data[0]}`,
+            'id': `${shopId}_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}_${data[0]}`,
             'shopId': shopId,
-            'startTime': new Date(startOfyesterday() * 1000),
-            'endTime': new Date(endOfYesterday() * 1000),
-            'year': yesterdayYear(),
-            'month': yesterdayMonth(),
-            'day': yesterdayDay()
+            'startTime': new Date(startOfDate(date) * 1000),
+            'endTime': new Date(endOfDate(date) * 1000),
+            'year': date.getFullYear(),
+            'month': date.getMonth() + 1,
+            'day': date.getDate()
         }
         data.forEach((v, index) => {
             let header = headerArray[0][index]
@@ -363,7 +368,7 @@ function _uploadArray(type, titleArray, headerArray, newDataArray) {
                 console.log(`分批上传 ${index} ${path}: `, data)
                 if (index == _chunkArray.length - 1) {
                     console.log(`最后一批上传完毕 ${index} ${path}: `, data)
-                    Events.dispatch(Events.UPLOAD_COMPLETE, type, 'success', esDatas.length)
+                    Events.dispatch(Events.UPLOAD_COMPLETE, type, date, shopInfo, esDatas.length)
                 }
             })
             .catch(error => Events.dispatch(Events.NETWORK_ERROR, url, error))
@@ -402,18 +407,31 @@ function sendToNotify(message) {
 }
 
 // 下载指定类型的昨日数据
-function fetchFile(type, force) {
-    // 导出文件
-    _exportFile(type, force, (res) => {
-        // 检查文件是否生成
-        _checkFile(type, res, () => {
-            // 下载文件
-            _downloadFile(type, res, (content) => {
-                // 补全商品图
-                _fillContent(type, res, content, (titleArray, headerArray, newDataArray) => {
-                    _uploadArray(type, titleArray, headerArray, newDataArray)
+function fetchFile(type, date, force) {
+    _getShopInfo(shopInfo => {
+        let indexName = getIndexName(type, date, shopInfo)
+        // 例子: 833005508_index_0_2023_3_28
+        chrome.storage.local.get([indexName], function (result) {
+            let uploadedCount = result[indexName]
+            if (!force && uploadedCount != undefined && uploadedCount > 0) {
+                console.log(`${indexName} 已经上传过${uploadedCount}条记录,不再重复上传`)
+                return
+            }
+
+            // 导出文件
+            _exportFile(type, date, shopInfo, (res) => {
+                // 检查文件是否生成
+                _checkFile(type, date, shopInfo, res, () => {
+                    // 下载文件
+                    _downloadFile(type, date, shopInfo, res, (content) => {
+                        // 补全商品图
+                        _fillContent(type, date, shopInfo, res, content, (titleArray, headerArray, newDataArray) => {
+                            _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArray)
+                        })
+                    })
                 })
             })
+
         })
     })
 }
@@ -423,21 +441,21 @@ function getTypename(type) {
     return typename
 }
 
-function getIndexName(type) {
-    let y_m_d = [yesterdayYear(), yesterdayMonth(), yesterdayDay()].join("_")
-    let index_name = `index_${type}_${y_m_d}`
+function getIndexName(type, date, shopInfo) {
+    let y_m_d = getYmdArray(date).join("_")
+    let index_name = `${shopInfo.shopid}_index_${type}_${y_m_d}`
     return index_name
 }
 
 
 // 监听文件导出事件回调
-Events.listener(Events.EXPORT_FILE, ([type, file_res]) => {
+Events.listener(Events.EXPORT_FILE, ([type, date, shopInfo, file_res]) => {
     let message = `导出${getTypename(type)}` + ":" + file_res.fileid + '/' + file_res.filename
     this.sendToFront('success', message)
 })
 
 // 监听文件生成检查状态回调
-Events.listener(Events.CHECK_FILE, ([type, res, status]) => {
+Events.listener(Events.CHECK_FILE, ([type, date, shopInfo, res, status]) => {
     if (status == 0) {
         // 文件已生成
         this.sendToFront('success', `${getTypename(type)}: ${res.fileid}/${res.filename} 已经生成`)
@@ -445,27 +463,27 @@ Events.listener(Events.CHECK_FILE, ([type, res, status]) => {
 })
 
 // 监听导出失败事件
-Events.listener(Events.EXPORT_FILE_ERROR, ([type, message]) => {
+Events.listener(Events.EXPORT_FILE_ERROR, ([type, date, message]) => {
     this.sendToFront('error', `导出${getTypename(type)}失败: ${message}`)
 })
 
 // 监听检查失败事件
-Events.listener(Events.CHECK_FILE_ERROR, (message) => {
+Events.listener(Events.CHECK_FILE_ERROR, ([type, date, shopInfo, message]) => {
     this.sendToFront('error', `检查失败: ${message}`)
 })
 
 // 监听文件下载读取到内容事件
-Events.listener(Events.DOWNLOAD_FILE, (content) => {
+Events.listener(Events.DOWNLOAD_FILE, ([type, date, shopInfo, content]) => {
     // this.sendToFront('info', `文件内容: ${content}`)
 })
 
 // 监听分段获取广告列表
-Events.listener(Events.OFFSET_MARKETING_DATA, ([offset, limit, datas]) => {
+Events.listener(Events.OFFSET_MARKETING_DATA, ([type, date, shopInfo, offset, limit, datas]) => {
     this.sendToFront('info', `获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
 })
 
 // 监听csv文件补全后的内容事件
-Events.listener(Events.GENERATE_DATA_ARRAY, ([titleArray, headerArray, newDataArray]) => {
+Events.listener(Events.GENERATE_DATA_ARRAY, ([type, date, shopInfo, titleArray, headerArray, newDataArray]) => {
     this.sendToFront('info', `csv文件补全完成，共 ${newDataArray.length} 条`)
     // let newArray = [].concat(titleArray, headerArray, newDataArray)
     // 准备将数据整理成 csv 格式
@@ -483,20 +501,23 @@ Events.listener(Events.GENERATE_DATA_ARRAY, ([titleArray, headerArray, newDataAr
 })
 
 // 上传成功回调
-Events.listener(Events.UPLOAD_COMPLETE, ([type, status, count]) => {
-    let index_name = getIndexName(type)
-    let typename = getTypename(type)
-    let message = `${typename} ${getIndexName(type)}: 已成功上传服务器 ${count} 条`
-    if (status == 'exist') {
-        message = `昨日${typename}数据已上传过: ${getIndexName(type)} ${count} 条`
-    }
-    console.log('upload_complete: ', message)
-    this.sendToFront('completed', message, type)
+Events.listener(Events.UPLOAD_COMPLETE, ([type, date, shopInfo, count]) => {
+    let index_name = getIndexName(type, date, shopInfo)
+    let obj = {}
+    obj[index_name] = count
+    chrome.storage.local.set(obj, function () {
+        let typename = getTypename(type)
+        let message = `${typename} ${index_name}: 已成功上传服务器 ${count} 条`
+        console.log('upload_complete: ', message)
+        this.sendToFront('completed', message, type)
+    })
 })
 
 // 请求失败回调
 Events.listener(Events.NETWORK_ERROR, ([url, error]) => {
-    this.sendToFront('error', `请求地址 ${url}失败: ${error.message}`)
+    let message = `请求地址 ${url}失败: ${error.message}`
+    console.log(message)
+    this.sendToFront('error', message)
 })
 
 // 应用安装完成后提示
@@ -525,9 +546,13 @@ chrome.webNavigation.onCompleted.addListener(function (details) {
 // 接收前端发送过来的消息
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log('收到前台消息:', request.message)
+    chrome.storage.local.set({'valuedddd': 'sssssssss'}, function () {
+        console.log('result.valuedddd', '设置已保存')
+    })
     if (request.type == 'fetch') {
         this.sendToFront('info', `开始收集${getTypename(request.data)}数据`)
-        this.fetchFile(request.data, false)
+        // 下载今日数据
+        this.fetchFile(request.data, new Date(), false)
     }
 })
 
