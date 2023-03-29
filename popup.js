@@ -24,7 +24,7 @@ $(document).ready(function () {
 
     // 收集综合数据
     $('#btn_0').click((event) => {
-        fetchFile(0, today(-1), today(-7), 0)
+        fetchFile(0, today(-1), today(-7))
     })
 
     // 收集关键字数据
