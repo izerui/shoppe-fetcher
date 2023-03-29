@@ -498,8 +498,9 @@ function continueUpload(type, date, endDate, shopInfo, timeout) {
     } else {
         let beforeDate = new Date(date.getTime() - 86400000)
         if (startOfDate(beforeDate) < startOfDate(endDate)) {
-            Events.dispatch(Events.SUCCESS_MESSAGE, `收集完成, 截止日期: ${getYmdArray(date).join('_')}`)
-            console.log('========== 收集完成 ==========', endDate)
+            let message = `收集完成, 截止日期: ${getYmdArray(date).join('_')}`
+            Events.dispatch(Events.SUCCESS_MESSAGE, message)
+            console.log(message)
             return
         }
         fetchFile(0, beforeDate, endDate, shopInfo, timeout)
