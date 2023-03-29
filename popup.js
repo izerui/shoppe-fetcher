@@ -15,12 +15,12 @@ $(document).ready(function () {
 
     // 监听导出失败事件
     Events.listener(Events.EXPORT_FILE_ERROR, ([type, date, shopInfo, message]) => {
-        appendText(`${getTitleTip(type, date, shopInfo)} 导出失败: ${message}, 10秒后重试...`)
+        appendText(`${getTitleTip(type, date, shopInfo)} 导出失败,${message}, 10秒后重试...`)
     })
 
     // 监听检查失败事件
     Events.listener(Events.CHECK_FILE_ERROR, ([type, date, shopInfo, message]) => {
-        appendText(`${getTitleTip(type, date, shopInfo)} 检查失败: ${message}`)
+        appendText(`${getTitleTip(type, date, shopInfo)} 检查失败,${message}`)
     })
 
     // 监听文件下载读取到内容事件
@@ -30,7 +30,7 @@ $(document).ready(function () {
 
     // 监听分段获取广告列表
     Events.listener(Events.OFFSET_MARKETING_DATA, ([type, date, shopInfo, offset, limit, datas]) => {
-        appendText(`${getTitleTip(type, date, shopInfo)} 获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
+        // appendText(`${getTitleTip(type, date, shopInfo)} 获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
     })
 
     // 监听csv文件补全后的内容事件
@@ -55,29 +55,31 @@ $(document).ready(function () {
         let y_m_d = getYmdArray(date).join("_")
         let message = `${getTitleTip(type, date, shopInfo)} 已成功上传服务器 ${count} 条`
         appendText(message)
-        if (type == 0) {
-            appendText(`15秒后继续导出${getTitleTip(1, date, shopInfo)}...`)
-            fetchFile(1, date, shopInfo, 15000)
-        } else {
-            date = new Date(date.getTime() - 86400000)
-            appendText(`15秒后继续导出${getTitleTip(1, date, shopInfo)}...`)
-            fetchFile(0, date, shopInfo, 15000)
-        }
+        continueUpload(type, date, shopInfo)
     })
 
     Events.listener(Events.UPLOAD_EXIST, ([type, date, shopInfo]) => {
         let y_m_d = getYmdArray(date).join("_")
-        let message = `商店${shopInfo.shopid} ${getTypename(type)} ${y_m_d}: 已经上传过, 不再重复上传`
+        let message = `[${shopInfo.shopid}/${getTypename(type)}]: ${y_m_d}: 已经上传过, 不再重复上传`
         appendText(message)
-        if (type == 0) {
-            appendText(`15秒后继续导出${getTitleTip(1, date, shopInfo)}...`)
+        continueUpload(type, date, shopInfo)
+    })
+
+    function continueUpload(completeType, date, shopInfo) {
+        if (completeType == 0) {
+            appendText(`${getTitleTip(1, date, shopInfo)}15秒后继续导出...`)
             fetchFile(1, date, shopInfo, 15000)
         } else {
-            date = new Date(date.getTime() - 86400000)
-            appendText(`15秒后继续导出${getTitleTip(1, date, shopInfo)}...`)
-            fetchFile(0, date, shopInfo, 15000)
+            let beforeDate = new Date(date.getTime() - 86400000)
+            if (startOfDate(beforeDate) < startOfDate(today(-1))) {
+                console.log('超过14日内数据，不再收集', date)
+                appendText(`${getTitleTip(1, date, shopInfo)}收集完成。`)
+                return
+            }
+            appendText(`${getTitleTip(1, date, shopInfo)}15秒后继续导出...`)
+            fetchFile(0, beforeDate, shopInfo, 15000)
         }
-    })
+    }
 
     Events.listener(Events.SHOP_STORAGE_RESET_SUCCESS, ([shopInfo]) => {
         appendText(`商店: ${shopInfo.shopid} 重置上传状态成功`)
@@ -91,7 +93,7 @@ $(document).ready(function () {
 
     // 收集综合数据
     $('#btn_0').click((event) => {
-        fetchFile(0, new Date(), null, 0)
+        fetchFile(0, today(-22), null, 0)
     })
 
     // 收集关键字数据

@@ -12,64 +12,49 @@ const Events = {
     /**
      * args: [cookies]
      */
-    GET_COOKIES: 'getCookies',
-    /**
+    GET_COOKIES: 'getCookies', /**
      * args: [type, date, shopInfo, fileObj]
      */
-    EXPORT_FILE: '_exportFile',
-    /**
+    EXPORT_FILE: '_exportFile', /**
      * args: [type, date, shopInfo, fileObj, status]
      */
-    CHECK_FILE: '_checkFile',
-    /**
+    CHECK_FILE: '_checkFile', /**
      * args: [type, date, shopInfo, errMsg]
      */
-    EXPORT_FILE_ERROR: 'exportFileError',
-    /**
+    EXPORT_FILE_ERROR: 'exportFileError', /**
      * args: [type, date,shopInfo, errMsg]
      */
-    CHECK_FILE_ERROR: 'checkFileError',
-    /**
+    CHECK_FILE_ERROR: 'checkFileError', /**
      * args: [type, date, shopInfo, textContent]
      */
-    DOWNLOAD_FILE: '_downloadFile',
-    /**
+    DOWNLOAD_FILE: '_downloadFile', /**
      * args: [type, date, shopInfo, offset, limit, offsetDatas]
      */
-    OFFSET_MARKETING_DATA: 'offsetMarketingData',
-    /**
+    OFFSET_MARKETING_DATA: 'offsetMarketingData', /**
      * args: [type, date, shopInfo, datas]
      */
-    MARKETING_DATA: 'marketingData',
-    /**
+    MARKETING_DATA: 'marketingData', /**
      * args: [type, date, shopInfo, errMsg]
      */
-    MARKETING_DATA_ERROR: 'marketingDataError',
-    /**
+    MARKETING_DATA_ERROR: 'marketingDataError', /**
      * args: [type, date, shopInfo, titleArray, headerArray, newDataArray]
      */
-    GENERATE_DATA_ARRAY: 'generateDataArray',
-    /**
+    GENERATE_DATA_ARRAY: 'generateDataArray', /**
      * args: [type, date, shopInfo, count]
      */
-    UPLOAD_COMPLETE: 'uploadComplete',
-    /**
+    UPLOAD_COMPLETE: 'uploadComplete', /**
      * args: [type, date, shopInfo]
      */
-    UPLOAD_EXIST: 'uploadExist',
-    /**
+    UPLOAD_EXIST: 'uploadExist', /**
      * args: [shopInfo]
      */
-    SHOP_INFO_RESULT: 'shopInfoResult',
-    /**
+    SHOP_INFO_RESULT: 'shopInfoResult', /**
      * args: [shopInfo]
      */
-    SHOP_STORAGE_RESET_SUCCESS: 'shopStorageResetSuccess',
-    /**
+    SHOP_STORAGE_RESET_SUCCESS: 'shopStorageResetSuccess', /**
      * 监听器列表
      */
-    listeners: {},
-    /**
+    listeners: {}, /**
      * 触发事件
      * @param eventName 事件名
      * @param args 传参
@@ -81,8 +66,7 @@ const Events = {
                 event(args)
             })
         }
-    },
-    /**
+    }, /**
      * 事件监听
      * @param eventName 事件名
      * @param listener 监听方法
@@ -94,8 +78,7 @@ const Events = {
         }
         events.push(listener)
         this.listeners[eventName] = events
-    },
-    /**
+    }, /**
      * 移除事件监听
      * @param eventName 事件名
      */
@@ -109,28 +92,25 @@ const Events = {
 
 function today(offset) {
     let date = new Date()
-    date.setHours(0);
-    date.setMinutes(0);
-    date.setSeconds(0);
-    date.setMilliseconds(0);
     date = new Date(date.getTime() + offset * 86400000)
     return date
 }
 
 function startOfDate(date) {
+    let startDate = new Date(date.getTime())
     // 将时分秒设为0
-    date.setHours(0);
-    date.setMinutes(0);
-    date.setSeconds(0);
-    date.setMilliseconds(0);
+    startDate.setHours(0);
+    startDate.setMinutes(0);
+    startDate.setSeconds(0);
+    startDate.setMilliseconds(0);
     // 取得时间戳
-    let timestamp = Math.floor(date.getTime() / 1000);
+    let timestamp = Math.floor(startDate.getTime() / 1000);
     return timestamp
 }
 
 function endOfDate(date) {
-    date = new Date(date.getTime() + 86400000)
-    let timestamp = Math.floor(date.getTime() / 1000);
+    let endDate = new Date(date.getTime() + 86400000)
+    let timestamp = Math.floor(endDate.getTime() / 1000);
     return timestamp
 }
 
@@ -178,7 +158,6 @@ function _getShopInfo(callback) {
             }).catch(error => console.error(error))
     })
 }
-
 
 // 请求导出数据文件
 function _exportFile(type, date, shopInfo, callback) {
@@ -315,11 +294,9 @@ function _fillContent(type, date, shopInfo, res, content, callback) {
 }
 
 const floatHeaders = (type) => {
-    const floatHeaders0 = ['排序', '浏览数', '点击数', '转化', '直接转化', '每一转化的成本', '每一直接转化的成本',
-        '商品已出售', '直接已售商品', '销售金额', '直接销售金额', '花费', '投资产出比', '直接投资产出比']
+    const floatHeaders0 = ['排序', '浏览数', '点击数', '转化', '直接转化', '每一转化的成本', '每一直接转化的成本', '商品已出售', '直接已售商品', '销售金额', '直接销售金额', '花费', '投资产出比', '直接投资产出比']
 
-    const floatHeaders1 = ['排序', '浏览数', '点击数', '平均排名', '转化', '直接转化', '每点击成本', '每一转化的成本',
-        '每一直接转化的成本', '商品已出售', '直接已售商品', '销售金额', '直接销售金额', '花费', '投资产出比', '直接投资产出比']
+    const floatHeaders1 = ['排序', '浏览数', '点击数', '平均排名', '转化', '直接转化', '每点击成本', '每一转化的成本', '每一直接转化的成本', '商品已出售', '直接已售商品', '销售金额', '直接销售金额', '花费', '投资产出比', '直接投资产出比']
     return type == 0 ? floatHeaders0 : floatHeaders1
 }
 
@@ -362,9 +339,7 @@ function _uploadArray(type, date, shopInfo, titleArray, headerArray, newDataArra
     _chunkArray.forEach((array, index) => {
         let url = `${ES_BASE_URL}${path}`
         fetch(url, {
-            method: 'POST',
-            body: JSON.stringify(array),
-            headers: {
+            method: 'POST', body: JSON.stringify(array), headers: {
                 'Content-Type': 'application/json'
             }
         })
@@ -404,20 +379,14 @@ function sendToFront(type, message, data = null) {
 // 发送通知到chrome浏览器
 function sendToNotify(message) {
     chrome.notifications.create({
-        type: 'basic',
-        title: '虾皮广告收集器',
-        message: message,
-        iconUrl: './img/icon-48.png'
+        type: 'basic', title: '虾皮广告收集器', message: message, iconUrl: './img/icon-48.png'
     })
 }
 
 // 下载指定类型的昨日数据
-function fetchFile(type, date, shop, timeout = 0) {
-    if (date < today(-7)) {
-        console.log('超过7日内数据，不再收集')
-        return
-    }
-    const execution = (shopInfo) => {
+function fetchFile(fetch_type, fetch_date, fetch_shop, timeout = 0) {
+    const execution = (type, date, shopInfo) => {
+        console.warn('execution:::::', type, date, shopInfo)
         let shopid = shopInfo.shopid.toString()
         let indexName = getIndexName(type, date, shopInfo)
         // 例: 833005508_index_0_2023_3_28
@@ -453,11 +422,11 @@ function fetchFile(type, date, shop, timeout = 0) {
         })
     }
 
-    if (shop) {
-        execution(shop)
+    if (fetch_shop) {
+        execution(fetch_type, fetch_date, fetch_shop)
     } else {
         _getShopInfo(shopInfo => {
-            execution(shopInfo)
+            execution(fetch_type, fetch_date, shopInfo)
         })
     }
 
@@ -486,16 +455,9 @@ function getIndexName(type, date, shopInfo) {
     return index_name
 }
 
-function getTitleTip(type, date) {
-    let y_m_d = getYmdArray(date).join("_")
-    let tip = `${y_m_d}/${getTypename(type)}: `
-    return tip
-}
-
-
 function getTitleTip(type, date, shopInfo) {
     let y_m_d = getYmdArray(date).join("_")
-    let tip = `${shopInfo.shopid}/${y_m_d}/${getTypename(type)}: `
+    let tip = `[${shopInfo.shopid}/${y_m_d}/${getTypename(type)}]: `
     return tip
 }
 
@@ -516,7 +478,7 @@ Events.listener(Events.CHECK_FILE, ([type, date, shopInfo, res, status]) => {
 
 // 监听导出失败事件
 Events.listener(Events.EXPORT_FILE_ERROR, ([type, date, shopInfo, message]) => {
-    this.sendToFront('error', `${getTitleTip(type, date, shopInfo)} 导出失败, ${message}, 10秒后重试...`)
+    this.sendToFront('error', `${getTitleTip(type, date, shopInfo)} 导出失败,${message}, 10秒后重试...`)
 })
 
 // 监听检查失败事件
@@ -531,7 +493,7 @@ Events.listener(Events.DOWNLOAD_FILE, ([type, date, shopInfo, content]) => {
 
 // 监听分段获取广告列表
 Events.listener(Events.OFFSET_MARKETING_DATA, ([type, date, shopInfo, offset, limit, datas]) => {
-    this.sendToFront('info', `${getTitleTip(type, date, shopInfo)} 获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
+    // this.sendToFront('info', `${getTitleTip(type, date, shopInfo)} 获取广告列表: offset:${offset} limit:${limit} 共${datas.length}条`)
 })
 
 // 监听csv文件补全后的内容事件
@@ -560,8 +522,7 @@ Events.listener(Events.UPLOAD_COMPLETE, ([type, date, shopInfo, count]) => {
         let shopObj = result[shopid]
         if (!shopObj) {
             shopObj = {
-                'type0': new Array(7),
-                'type1': new Array(7)
+                'type0': new Array(7), 'type1': new Array(7)
             }
         }
         if (type == 0) {
@@ -626,9 +587,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
     for (let [key, {oldValue, newValue}] of Object.entries(changes)) {
-        console.log(
-            `Storage key "${key}" in namespace "${namespace}" changed.`,
-            `Old value was "${oldValue}", new value is "${newValue}".`
-        );
+        console.log(`Storage key "${key}" in namespace "${namespace}" changed.`, `Old value was "${oldValue}", new value is "${newValue}".`);
     }
 })

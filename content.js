@@ -1,11 +1,11 @@
 console.log('====================已经加载虾皮广告收集器====================')
 
 window.addEventListener('load', (event) => {
-    setInterval(() => {
-        console.log('content.js: ', '检测并开始收集广告数据...')
-        // 通知后台开始收集综合广告数据
-        chrome.runtime.sendMessage({type: 'fetch', message: '开始收集综合广告数据', data: {type: 0, date: today(-1)}})
-    }, 1000 * 60 * 1)
+    // setInterval(() => {
+    //     console.log('content.js: ', '检测并开始收集广告数据...')
+    //     // 通知后台开始收集综合广告数据
+    //     chrome.runtime.sendMessage({type: 'fetch', message: '开始收集综合广告数据', data: {type: 0, date: today(-1)}})
+    // }, 1000 * 60 * 1)
 })
 
 
@@ -66,10 +66,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 function today(offset) {
     let date = new Date()
-    date.setHours(0);
-    date.setMinutes(0);
-    date.setSeconds(0);
-    date.setMilliseconds(0);
     date = new Date(date.getTime() + offset * 86400000)
     return date
 }
