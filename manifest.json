@@ -36,7 +36,7 @@
       "css": [
         "./ext/jquery.toast.min.css"
       ],
-      "run_at": "document_end"
+      "run_at": "document_idle"
     }
   ],
   "action": {
