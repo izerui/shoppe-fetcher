@@ -362,7 +362,83 @@ function sendToNotify(message) {
 
 // 收集
 const execution = (type, date, endDate, shopInfo, timeout) => {
-    // console.warn('execution:::::', type, date, shopInfo)
+    _checkLocal(type, date, endDate, shopInfo, () => {
+        let message = `${getTitleTip(type, date, shopInfo)}已经上传过, 不再重复上传`
+        Events.dispatch(Events.WARN_MESSAGE, message)
+        console.log(message)
+        // 继续下一个类型或者继续前一天数据
+        continueUpload(type, date, endDate, shopInfo, 15000)
+        return
+    }, () => {
+        _checkServer(type, date, endDate, shopInfo, () => {
+            let message = `${getTitleTip(type, date, shopInfo)}服务器上已经存在当日数据, 不再重复上传`
+            Events.dispatch(Events.WARN_MESSAGE, message)
+            console.log(message)
+            // 继续下一个类型或者继续前一天数据
+            continueUpload(type, date, endDate, shopInfo, 15000)
+            return
+        }, () => {
+            // appendText('等待15秒后,继续上传...')
+            setTimeout(() => {
+                // 导出文件
+                _exportFile(type, date, endDate, shopInfo, (res) => {
+                    // 检查文件是否生成
+                    _checkFile(type, date, endDate, shopInfo, res, () => {
+                        // 下载文件
+                        _downloadFile(type, date, endDate, shopInfo, res, (content) => {
+                            // 补全商品图
+                            _fillContent(type, date, endDate, shopInfo, res, content, (titleArray, headerArray, newDataArray) => {
+                                // 上传服务器
+                                _uploadArray(type, date, endDate, shopInfo, titleArray, headerArray, newDataArray, () => {
+                                    // 记录上传成功状态
+                                    _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, () => {
+                                        // 继续下一个类型或者继续前一天数据
+                                        continueUpload(type, date, endDate, shopInfo, 15000)
+                                    })
+                                })
+                            })
+                        })
+                    })
+                })
+            }, timeout)
+        })
+    })
+}
+
+// 检查服务器已经上传的数据数量
+function _checkServer(type, date, endDate, shopInfo, existCallback, noExistCallback) {
+    let ymdArray = getYmdArray(date)
+    const formData = new FormData()
+    formData.append('indexName', type == 0 ? 'overall_index' : 'keyword_index')
+    formData.append('shopId', shopInfo.shopid)
+    formData.append('year', ymdArray[0])
+    formData.append('month', ymdArray[1])
+    formData.append('day', ymdArray[2])
+    let url = `${ES_BASE_URL}/ads/index-count`
+    fetch(url, {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let count = data.data
+                if (count && count > 0) {
+                    existCallback()
+                } else {
+                    noExistCallback()
+                }
+            } else {
+                let message = `请求服务器失败,${url}`
+                console.error(message)
+                Events.dispatch(Events.ERROR_MESSAGE, message)
+            }
+        })
+        .catch(error => console.error(error))
+}
+
+// 检查本地是否上传过
+function _checkLocal(type, date, endDate, shopInfo, existCallback, undoCallback) {
     let shopid = shopInfo.shopid.toString()
     let indexName = getIndexName(type, date, shopInfo)
     // 例: 833005508_index_0_2023_3_28
@@ -372,42 +448,14 @@ const execution = (type, date, endDate, shopInfo, timeout) => {
         if (shopObj) {
             let indexArray = type == 0 ? shopObj.type0 : shopObj.type1
             if (indexArray.includes(indexName)) {
-                let message = `${getTitleTip(type, date, shopInfo)}已经上传过, 不再重复上传`
-                Events.dispatch(Events.WARN_MESSAGE, message)
-                console.log(message)
-                // 继续下一个类型或者继续前一天数据
-                continueUpload(type, date, endDate, shopInfo, 15000)
-                return
+                existCallback()
             }
         }
-        // TODO 判断服务器端是否已经上传过
-
-        // appendText('等待15秒后,继续上传...')
-        setTimeout(() => {
-            // 导出文件
-            _exportFile(type, date, endDate, shopInfo, (res) => {
-                // 检查文件是否生成
-                _checkFile(type, date, endDate, shopInfo, res, () => {
-                    // 下载文件
-                    _downloadFile(type, date, endDate, shopInfo, res, (content) => {
-                        // 补全商品图
-                        _fillContent(type, date, endDate, shopInfo, res, content, (titleArray, headerArray, newDataArray) => {
-                            // 上传服务器
-                            _uploadArray(type, date, endDate, shopInfo, titleArray, headerArray, newDataArray, () => {
-                                // 记录上传成功状态
-                                _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, () => {
-                                    // 继续下一个类型或者继续前一天数据
-                                    continueUpload(type, date, endDate, shopInfo, 15000)
-                                })
-                            })
-                        })
-                    })
-                })
-            })
-        }, timeout)
+        undoCallback()
     })
 }
 
+// 标记本地已经上传过状态
 function _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, callback) {
     let shopid = shopInfo.shopid.toString()
     let indexName = getIndexName(type, date, shopInfo)
@@ -438,6 +486,7 @@ function _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, callbac
     })
 }
 
+// 继续上传下一个
 function continueUpload(type, date, endDate, shopInfo, timeout) {
     if (timeout > 0) {
         let message = `${getTitleTip(type, date, shopInfo)}等待${timeout / 1000}秒后继续下一个...`
