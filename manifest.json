@@ -15,8 +15,7 @@
     "cookies"
   ],
   "host_permissions": [
-    "*://*.shopee.com.my/*",
-    "*://*.yj2025.com/*"
+    "*://*.shopee.com.my/*"
   ],
   "icons": {
     "16": "./img/icon-16.png",

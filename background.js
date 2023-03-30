@@ -268,45 +268,109 @@ function _fillContent(type, date, endDate, shopInfo, res, content, callback) {
     fetchMarketingData(0, 20)
 }
 
-const floatHeaders = (type) => {
-    const floatHeaders0 = ['排序', '浏览数', '点击数', '转化', '直接转化', '每一转化的成本', '每一直接转化的成本', '商品已出售', '直接已售商品', '销售金额', '直接销售金额', '花费', '投资产出比', '直接投资产出比']
-
-    const floatHeaders1 = ['排序', '浏览数', '点击数', '平均排名', '转化', '直接转化', '每点击成本', '每一转化的成本', '每一直接转化的成本', '商品已出售', '直接已售商品', '销售金额', '直接销售金额', '花费', '投资产出比', '直接投资产出比']
-    return type == 0 ? floatHeaders0 : floatHeaders1
+function convert_num(line, prop) {
+    let value = line[prop]
+    if (value == 'N/A') {
+        value = '0'
+    }
+    return Number(value)
 }
 
-const encodeHeaders = () => {
-    return ['商品图片']
+function convert_rate(line, prop) {
+    let value = line[prop]
+    if (value == 'N/A') {
+        value = '0'
+    }
+    value = value.replace('%', '')
+    return Number(value)
 }
+
+function convert_decode(line, prop) {
+    let value = line[prop]
+    return decodeURIComponent(value)
+}
+
+const translations = [{code: "sort", name: "排序", convert: convert_num},
+    {code: "ads_name", name: "广告名称"},
+    {code: "status", name: "状态"},
+    {code: "commodity_number", name: "商品编号"},
+    {code: "commodity_pic_url", name: "商品图片", convert: convert_decode},
+    {code: "ads_type", name: "广告类型"},
+    {code: "keyword_addr", name: "关键字/展示位置"},
+    {code: "matching_type", name: "匹配类型"},
+    {code: "search_result", name: "搜寻结果"},
+    {code: "manual_automatic", name: "手动/自动"},
+    {code: "start_date", name: "开始日期"},
+    {code: "end_date", name: "结束日期"},
+    {code: "view_num", name: "浏览数", convert: convert_num},
+    {code: "click_num", name: "点击数", convert: convert_num},
+    {code: "click_rate", name: "点击率", convert: convert_rate},
+    {code: "ave_ranking", name: "平均排名", convert: convert_num},
+    {code: "conversion", name: "转化", convert: convert_num},
+    {code: "direct_conversion", name: "直接转化", convert: convert_num},
+    {code: "conversion_rate", name: "转化率", convert: convert_rate},
+    {code: "direct_conversion_rate", name: "直接转化率", convert: convert_rate},
+    {code: "cost_per_click", name: "每点击成本", convert: convert_num},
+    {code: "cost_per_conversion", name: "每一转化的成本", convert: convert_num},
+    {code: "cost_per_direct_conversion", name: "每一直接转化的成本", convert: convert_num},
+    {code: "goods_sold", name: "商品已出售", convert: convert_num},
+    {code: "goods_sold_directly", name: "直接已售商品", convert: convert_num},
+    {code: "sales_amount", name: "销售金额", convert: convert_num},
+    {code: "direct_sales_amount", name: "直接销售金额", convert: convert_num},
+    {code: "cost", name: "花费", convert: convert_num},
+    {code: "investment_output_ratio", name: "投资产出比", convert: convert_num},
+    {code: "direct_investment_output_ratio", name: "直接投资产出比", convert: convert_num},
+    {code: "cost_income_comparison", name: "成本收入对比"},
+    {code: "direct_cost_income_comparison", name: "直接成本收入对比"},
+    {code: "number_of_product_views", name: "商品浏览数"},
+    {code: "merchandise_clicks", name: "商品点击数", convert: convert_num},
+    {code: "click_through_rate", name: "商品点击率", convert: convert_rate}]
 
 // 上传数据到云
 function _uploadArray(type, date, endDate, shopInfo, titleArray, headerArray, newDataArray, callback) {
     // console.log('titleArray', titleArray)
     let esDatas = newDataArray.map(data => {
         // let shopId = titleArray[4][1].replace('\r', '')
+        let ymdArray = getYmdArray(date)
         let shopId = shopInfo.shopid
         let line = {
             'id': `${shopId}_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}_${data[0]}`,
             'shopId': shopId,
             'startTime': new Date(startOfDate(date) * 1000),
             'endTime': new Date(endOfDate(date) * 1000),
-            'year': date.getFullYear(),
-            'month': date.getMonth() + 1,
-            'day': date.getDate()
+            'year': ymdArray[0],
+            'month': ymdArray[1],
+            'day': ymdArray[2],
+            'summary_date': ymdArray.join('-')
         }
         data.forEach((v, index) => {
             let header = headerArray[0][index]
+            header = header.replace('\r', '')
             let value = v.replace('\r', '')
-            if (floatHeaders(type).includes(header)) {
-                line[header] = Number(value)
-            } else if (encodeHeaders().includes(header)) {
-                line[header] = decodeURIComponent(value)
-            } else {
-                line[header] = value
-            }
+            line[header] = value
         })
+        // 字段转换
+        let item = {}
+        for (let prop in line) {
+            let key = prop
+            let value = line[prop]
+            let trans = translations.filter(t => t.name == prop)
+            if (trans && trans.length > 0) {
+                key = trans[0].code
+                if (trans[0].convert) {
+                    try {
+                        value = trans[0].convert(line, prop)
+                    } catch (error) {
+                        console.error('转换失败', line, prop, error)
+                        throw error
+                    }
+
+                }
+            }
+            item[key] = value
+        }
         // console.log('line: ', line)
-        return line
+        return item
     })
     console.log('esDatas', esDatas)
     let path = type == 0 ? '/ads/collecte-overall' : '/ads/collecte-keyword'
@@ -370,13 +434,16 @@ const execution = (type, date, endDate, shopInfo, timeout) => {
         continueUpload(type, date, endDate, shopInfo, 15000)
         return
     }, () => {
-        _checkServer(type, date, endDate, shopInfo, () => {
-            let message = `${getTitleTip(type, date, shopInfo)}服务器上已经存在当日数据, 不再重复上传`
-            Events.dispatch(Events.WARN_MESSAGE, message)
-            console.log(message)
-            // 继续下一个类型或者继续前一天数据
-            continueUpload(type, date, endDate, shopInfo, 15000)
-            return
+        _checkServer(type, date, endDate, shopInfo, (count) => {
+            // 记录上传成功状态
+            _storeUploadStatus(type, date, endDate, shopInfo, count, () => {
+                let message = `${getTitleTip(type, date, shopInfo)}服务器上已经存在当日数据, 不再重复上传`
+                Events.dispatch(Events.WARN_MESSAGE, message)
+                console.log(message)
+                // 继续下一个类型或者继续前一天数据
+                continueUpload(type, date, endDate, shopInfo, 15000)
+                return
+            })
         }, () => {
             // appendText('等待15秒后,继续上传...')
             setTimeout(() => {
@@ -391,7 +458,7 @@ const execution = (type, date, endDate, shopInfo, timeout) => {
                                 // 上传服务器
                                 _uploadArray(type, date, endDate, shopInfo, titleArray, headerArray, newDataArray, () => {
                                     // 记录上传成功状态
-                                    _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, () => {
+                                    _storeUploadStatus(type, date, endDate, shopInfo, newDataArray.length, () => {
                                         // 继续下一个类型或者继续前一天数据
                                         continueUpload(type, date, endDate, shopInfo, 15000)
                                     })
@@ -409,11 +476,10 @@ const execution = (type, date, endDate, shopInfo, timeout) => {
 function _checkServer(type, date, endDate, shopInfo, existCallback, noExistCallback) {
     let ymdArray = getYmdArray(date)
     const formData = new FormData()
-    formData.append('indexName', type == 0 ? 'overall_index' : 'keyword_index')
+    let indexName = type == 0 ? 'overall_index' : 'keyword_index'
+    indexName = indexName + "_" + ymdArray.join('-')
+    formData.append('indexName', indexName)
     formData.append('shopId', shopInfo.shopid)
-    formData.append('year', ymdArray[0])
-    formData.append('month', ymdArray[1])
-    formData.append('day', ymdArray[2])
     let url = `${ES_BASE_URL}/ads/index-count`
     fetch(url, {
         method: 'POST',
@@ -424,7 +490,7 @@ function _checkServer(type, date, endDate, shopInfo, existCallback, noExistCallb
             if (data.success) {
                 let count = data.data
                 if (count && count > 0) {
-                    existCallback()
+                    existCallback(count)
                 } else {
                     noExistCallback()
                 }
@@ -456,7 +522,7 @@ function _checkLocal(type, date, endDate, shopInfo, existCallback, undoCallback)
 }
 
 // 标记本地已经上传过状态
-function _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, callback) {
+function _storeUploadStatus(type, date, endDate, shopInfo, count, callback) {
     let shopid = shopInfo.shopid.toString()
     let indexName = getIndexName(type, date, shopInfo)
     chrome.storage.local.get([shopid], function (result) {
@@ -479,7 +545,7 @@ function _storeUploadStatus(type, date, endDate, shopInfo, newDataArray, callbac
         storeShops[shopid] = shopObj
         chrome.storage.local.set(storeShops, function () {
             let typename = getTypename(type)
-            let message = `${getTitleTip(type, date, shopInfo)} 已标记上传成功状态 ${newDataArray.length} 条`
+            let message = `${getTitleTip(type, date, shopInfo)} 已标记上传成功状态 ${count} 条`
             Events.dispatch(Events.SUCCESS_MESSAGE, message)
             callback()
         })
@@ -506,7 +572,6 @@ function continueUpload(type, date, endDate, shopInfo, timeout) {
         fetchFile(0, beforeDate, endDate, shopInfo, timeout)
     }
 }
-
 
 // 下载指定类型的昨日数据
 function fetchFile(type, date, endDate, shopInfo = null, timeout = 0) {
