@@ -91,7 +91,9 @@ function getCookie(callback) {
         // 修复bug： 当获取不到cookie的时候
         if (cookies && cookies['SPC_CDS']) {
             callback(cookies)
+            return
         } else {
+            Events.dispatch(Events.ERROR_MESSAGE, '未获取到cookies')
             console.warn('未获取到cookies: ', cookies)
         }
     });
@@ -130,6 +132,7 @@ function _exportFile(type, date, endDate, shopInfo, callback) {
                 setTimeout(() => {
                     _exportFile(type, date, endDate, shopInfo, callback)
                 }, 10000)
+                return
             }
         }).catch(error => console.error(error))
 }
@@ -158,6 +161,7 @@ function _checkFile(type, date, endDate, shopInfo, res, callback) {
                     if (down_status == 0) {
                         // 文件已生成
                         callback()
+                        return
                     } else if (down_status == 3) {
                         let message = `${getTitleTip(type, date, shopInfo)}文件生成失败,跳过继续下一个...`
                         Events.dispatch(Events.ERROR_MESSAGE, message)
@@ -174,6 +178,7 @@ function _checkFile(type, date, endDate, shopInfo, res, callback) {
                         }
                         // 如果文件未生成继续延迟两秒检查状态
                         setTimeout(check_status, 2000);
+                        return
                     }
                 } else {
                     Events.dispatch(Events.ERROR_MESSAGE, `${getTitleTip(type, date, shopInfo)} 检查失败,${data.message}`)
@@ -390,6 +395,7 @@ function _uploadArray(type, date, endDate, shopInfo, titleArray, headerArray, ne
                     console.log(message)
                     Events.dispatch(Events.SUCCESS_MESSAGE, message)
                     callback()
+                    return
                 }
             })
             .catch(error => console.error(error))
@@ -468,6 +474,12 @@ const execution = (type, date, endDate, shopInfo, timeout) => {
                     })
                 })
             }, timeout)
+            if (timeout > 0) {
+                let message = `${getTitleTip(type, date, shopInfo)}等待${timeout / 1000}秒后继续下一个...`
+                Events.dispatch(Events.INFO_MESSAGE, message)
+                console.log(message)
+            }
+            return
         })
     })
 }
@@ -491,8 +503,10 @@ function _checkServer(type, date, endDate, shopInfo, existCallback, noExistCallb
                 let count = data.data
                 if (count && count > 0) {
                     existCallback(count)
+                    return
                 } else {
                     noExistCallback()
+                    return
                 }
             } else {
                 let message = `请求服务器失败,${url}`
@@ -515,9 +529,11 @@ function _checkLocal(type, date, endDate, shopInfo, existCallback, undoCallback)
             let indexArray = type == 0 ? shopObj.type0 : shopObj.type1
             if (indexArray.includes(indexName)) {
                 existCallback()
+                return
             }
         }
         undoCallback()
+        return
     })
 }
 
@@ -534,31 +550,33 @@ function _storeUploadStatus(type, date, endDate, shopInfo, count, callback) {
         }
         if (type == 0) {
             shopObj.type0 = shopObj.type0 ? shopObj.type0 : new Array(7)
+            if (shopObj.type0.includes(indexName)) {
+                return
+            }
             shopObj.type0.shift()
             shopObj.type0.push(indexName)
         } else {
             shopObj.type1 = shopObj.type1 ? shopObj.type1 : new Array(7)
+            if (shopObj.type1.includes(indexName)) {
+                return
+            }
             shopObj.type1.shift()
             shopObj.type1.push(indexName)
         }
         let storeShops = {}
         storeShops[shopid] = shopObj
         chrome.storage.local.set(storeShops, function () {
-            let typename = getTypename(type)
-            let message = `${getTitleTip(type, date, shopInfo)} 已标记上传成功状态 ${count} 条`
-            Events.dispatch(Events.SUCCESS_MESSAGE, message)
+            // let typename = getTypename(type)
+            // let message = `${getTitleTip(type, date, shopInfo)} 已标记上传成功状态 ${count} 条`
+            // Events.dispatch(Events.SUCCESS_MESSAGE, message)
             callback()
+            return
         })
     })
 }
 
 // 继续上传下一个
 function continueUpload(type, date, endDate, shopInfo, timeout) {
-    if (timeout > 0) {
-        let message = `${getTitleTip(type, date, shopInfo)}等待${timeout / 1000}秒后继续下一个...`
-        Events.dispatch(Events.INFO_MESSAGE, message)
-        console.log(message)
-    }
     if (type == 0) {
         fetchFile(1, date, endDate, shopInfo, timeout)
     } else {
@@ -656,6 +674,7 @@ chrome.webNavigation.onCompleted.addListener(function (details) {
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log('收到前台消息:', request)
     if (request.type == 'fetch') {
+        Events.dispatch(Events.INFO_MESSAGE, '收到用户消息,开始收集...')
         // 下载过去7日内数据
         this.fetchFile(0, today(-1), today(-7))
     }
