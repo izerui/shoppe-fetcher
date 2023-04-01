@@ -489,9 +489,12 @@ function _checkServer(type, date, endDate, shopInfo, existCallback, noExistCallb
     let ymdArray = getYmdArray(date)
     const formData = new FormData()
     let indexName = type == 0 ? 'overall_index' : 'keyword_index'
-    indexName = indexName + "_" + ymdArray.join('-')
+    // indexName = indexName + "_" + ymdArray.join('-')
     formData.append('indexName', indexName)
     formData.append('shopId', shopInfo.shopid)
+    formData.append('year', ymdArray[0])
+    formData.append('month', ymdArray[1])
+    formData.append('day', ymdArray[2])
     let url = `${ES_BASE_URL}/ads/index-count`
     fetch(url, {
         method: 'POST',
