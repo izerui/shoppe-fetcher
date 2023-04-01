@@ -326,7 +326,7 @@ const translations = [{code: "sort", name: "排序", convert: convert_num},
     {code: "investment_output_ratio", name: "投资产出比", convert: convert_num},
     {code: "direct_investment_output_ratio", name: "直接投资产出比", convert: convert_num},
     {code: "cost_income_comparison", name: "成本收入对比", convert: convert_rate},
-    {code: "direct_cost_income_comparison", name: "直接成本收入对比"},
+    {code: "direct_cost_income_comparison", name: "直接成本收入对比", convert: convert_rate},
     {code: "number_of_product_views", name: "商品浏览数", convert: convert_num},
     {code: "merchandise_clicks", name: "商品点击数", convert: convert_num},
     {code: "click_through_rate", name: "商品点击率", convert: convert_rate}]
