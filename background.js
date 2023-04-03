@@ -101,7 +101,7 @@ function getCookie(callback) {
 
 function _getShopInfo(callback) {
     getCookie((cookies) => {
-        let url = `https://seller.shopee.com.my/api/v2/login/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
+        let url = `https://${SHOPEE_BASE_DOMAIN}/api/v2/login/?SPC_CDS=${cookies.SPC_CDS}&SPC_CDS_VER=2`
         fetch(url)
             .then(response => response.json())
             .then(result => {
