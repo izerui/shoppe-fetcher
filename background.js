@@ -117,7 +117,9 @@ var checkCountObj = {}
 
 // 请求导出数据文件
 function _exportFile(type, date, endDate, shopInfo, callback) {
+    let indexName = getIndexName(type, date, shopInfo)
     checkCountObj = {}
+    checkCountObj[indexName] = undefined
     const url = `https://${SHOPEE_BASE_DOMAIN}/api/marketing/v3/pas/report_file/export/?report_type=${type}&start_time=${startOfDate(date)}&end_time=${endOfDate(date)}&SPC_CDS=${shopInfo.SPC_CDS}&SPC_CDS_VER=2`
     fetch(url)
         .then(response => response.json())
